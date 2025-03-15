@@ -24,9 +24,9 @@ import {
 const determineUserRole = (pathname: string | null) => {
   // For demo purposes, we'll determine role based on URL path
   // In a real app, this would come from your auth context/API
-  if (pathname?.includes("/admin")) return "admin"
-  if (pathname?.includes("/trainer")) return "trainer"
-  if (pathname?.includes("/user")) return "user"
+  if (pathname?.startsWith("/admin/")) return "admin"
+  if (pathname?.startsWith("/trainer/")) return "trainer"
+  if (pathname?.startsWith("/user/")) return "user"
   return "public" // New role for unauthenticated users
 }
 
