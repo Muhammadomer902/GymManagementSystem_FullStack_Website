@@ -151,8 +151,8 @@ export default function NavBar() {
               Training Plans
             </Link>
             <Link
-              href="/user/payment"
-              className={`${isActive("/user/payment")} transition-colors duration-200`}
+              href="/user/invoice"
+              className={`${isActive("/user/invoice")} transition-colors duration-200`}
               onClick={closeMenu}
             >
               Payments
