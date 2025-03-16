@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Search, Filter, Star, Award, ChevronDown, ChevronUp, MapPin, MessageSquare } from "lucide-react"
+import { Search, Filter, Star, Award, ChevronDown, ChevronUp, MapPin } from "lucide-react"
 
 // Mock data for trainers
 const trainers = [
@@ -262,7 +262,7 @@ export default function FindTrainerPage() {
                             )}
                           </button>
                           <Link
-                            href={`/user/trainer-plan?trainerId=${trainer.id}`}
+                            href={`/user/trainer-plan/${trainer.id}`}
                             className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
                           >
                             View Plans
@@ -281,17 +281,10 @@ export default function FindTrainerPage() {
 
                     <div className="flex flex-col sm:flex-row sm:justify-end sm:space-x-4">
                       <Link
-                        href={`/user/trainer-plan/request?trainerId=${trainer.id}`}
+                        href={`/user/trainer-plan/${trainer.id}`}
                         className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                       >
                         Request Training
-                      </Link>
-                      <Link
-                        href={`/user/message?trainerId=${trainer.id}`}
-                        className="mt-3 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        Message
                       </Link>
                     </div>
                   </div>
