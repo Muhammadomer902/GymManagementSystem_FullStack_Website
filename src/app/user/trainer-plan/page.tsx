@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Calendar, Clock, Dumbbell, Star, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react"
@@ -112,6 +112,7 @@ const trainers = [
 export default function TrainerPlanPage() {
   const searchParams = useSearchParams()
   const trainerId = searchParams.get("trainerId")
+  const router = useRouter()
 
   const [selectedTrainer, setSelectedTrainer] = useState<any>(null)
   const [expandedPlan, setExpandedPlan] = useState<number | null>(null)
@@ -133,12 +134,10 @@ export default function TrainerPlanPage() {
 
   useEffect(() => {
     if (trainerId) {
-      const trainer = trainers.find((t) => t.id === Number.parseInt(trainerId))
-      if (trainer) {
-        setSelectedTrainer(trainer)
-      }
+      // Redirect to the new single trainer page route
+      router.push(`/user/trainer-plan/${trainerId}`)
     }
-  }, [trainerId])
+  }, [trainerId, router])
 
   const togglePlanDetails = (id: number) => {
     setExpandedPlan(expandedPlan === id ? null : id)
@@ -592,7 +591,7 @@ export default function TrainerPlanPage() {
 
                           <div className="mt-4 flex justify-end">
                             <Link
-                              href={`/user/trainer-plan?trainerId=${trainer.id}`}
+                              href={`/user/trainer-plan/${trainer.id}`}
                               className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700"
                             >
                               View Plans
