@@ -153,15 +153,6 @@ export default function InvoicePage() {
             <h1 className="text-3xl font-bold text-gray-900">Invoices & Payments</h1>
             <p className="mt-1 text-gray-600">View and manage your billing history</p>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-3">
-            <Link
-              href="/user/payment-methods"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
-            >
-              <CreditCard className="h-5 w-5 mr-2" />
-              Payment Methods
-            </Link>
-          </div>
         </div>
 
         {/* Search and Filter */}
