@@ -138,19 +138,9 @@ export default function TrainerPaymentPage() {
     setExpandedPayment(expandedPayment === id ? null : id)
   }
 
-  const handleProcessPayment = (id: number) => {
-    setPayments(
-      payments.map((payment) =>
-        payment.id === id
-          ? {
-              ...payment,
-              status: "paid",
-              paymentDate: new Date().toISOString().split("T")[0],
-              paymentMethod: "Bank Transfer",
-            }
-          : payment,
-      ),
-    )
+  const handleNavigateToPayment = (id: number) => {
+    // In a real app, this would navigate to the payment page
+    window.location.href = `/admin/trainer-payment/process/${id}`
   }
 
   const getStatusBadge = (status: string) => {
@@ -393,12 +383,12 @@ export default function TrainerPaymentPage() {
 
                           {(payment.status === "pending" || payment.status === "overdue") && (
                             <button
-                              onClick={() => handleProcessPayment(payment.id)}
+                              onClick={() => handleNavigateToPayment(payment.id)}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
                               suppressHydrationWarning
                             >
                               <DollarSign className="h-4 w-4 mr-1" />
-                              Process Payment
+                              Go to Payment
                             </button>
                           )}
                         </div>
@@ -470,11 +460,11 @@ export default function TrainerPaymentPage() {
 
                       {(payment.status === "pending" || payment.status === "overdue") && (
                         <button
-                          onClick={() => handleProcessPayment(payment.id)}
+                          onClick={() => handleNavigateToPayment(payment.id)}
                           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
                         >
                           <DollarSign className="h-4 w-4 mr-2" />
-                          Process Payment
+                          Go to Payment
                         </button>
                       )}
                     </div>
