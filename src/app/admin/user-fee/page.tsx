@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import {
   Search,
   Filter,
@@ -114,6 +115,15 @@ export default function UserFeePage() {
     membershipType: "all",
   })
   const [fees, setFees] = useState(userFees)
+
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const statusParam = searchParams.get("status")
+    if (statusParam) {
+      setFilters((prev) => ({ ...prev, status: statusParam }))
+    }
+  }, [searchParams])
 
   const toggleFilter = () => {
     setFilterOpen(!filterOpen)
