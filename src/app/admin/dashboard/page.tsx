@@ -11,7 +11,6 @@ import {
   ChevronRight,
   UserPlus,
   CreditCard,
-  FileText,
   Dumbbell,
 } from "lucide-react"
 
@@ -243,7 +242,7 @@ export default function AdminDashboard() {
             </div>
             <div className="mt-4">
               <Link
-                href="/admin/user-fee"
+                href="/admin/user-fee?status=pending"
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
               >
                 View unpaid fees
@@ -413,13 +412,13 @@ export default function AdminDashboard() {
                     <span className="text-sm font-medium text-gray-900">Trainer Payments</span>
                   </Link>
                   <Link
-                    href="/admin/reports"
+                    href="/admin/growth"
                     className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
                   >
                     <div className="p-2 rounded-full bg-yellow-100 text-yellow-600 mb-2">
-                      <FileText className="h-6 w-6" />
+                      <TrendingUp className="h-6 w-6" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900">Generate Reports</span>
+                    <span className="text-sm font-medium text-gray-900">Growth Analytics</span>
                   </Link>
                 </div>
               </div>
