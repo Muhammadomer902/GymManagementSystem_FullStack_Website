@@ -309,13 +309,13 @@ export default function TrainerDashboard() {
                   <span className="text-sm font-medium text-gray-900">Submit Complaint</span>
                 </Link>
                 <Link
-                  href="/trainer/profile"
+                  href="/trainer/schedule"
                   className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
                 >
                   <div className="p-2 rounded-full bg-purple-100 text-purple-600 mb-2">
-                    <Users className="h-6 w-6" />
+                    <Calendar className="h-6 w-6" />
                   </div>
-                  <span className="text-sm font-medium text-gray-900">My Profile</span>
+                  <span className="text-sm font-medium text-gray-900">Schedule</span>
                 </Link>
               </div>
             </div>
