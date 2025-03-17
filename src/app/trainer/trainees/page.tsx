@@ -3,17 +3,7 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import {
-  Search,
-  Filter,
-  ChevronDown,
-  ChevronUp,
-  ChevronRight,
-  Calendar,
-  Clock,
-  Dumbbell,
-  MessageSquare,
-} from "lucide-react"
+import { Search, Filter, ChevronDown, ChevronUp, ChevronRight, Calendar, Clock, Dumbbell } from "lucide-react"
 
 // Mock data for trainees
 const trainees = [
@@ -254,7 +244,7 @@ export default function TraineesPage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 flex flex-wrap justify-between items-center">
+                      <div className="mt-4">
                         <button
                           onClick={() => toggleTraineeDetails(trainee.id)}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
@@ -266,13 +256,6 @@ export default function TraineesPage() {
                             <ChevronDown className="ml-1 h-4 w-4" />
                           )}
                         </button>
-
-                        <div className="mt-2 md:mt-0 flex space-x-3">
-                          <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm">
-                            <MessageSquare className="h-4 w-4 mr-1" />
-                            Message
-                          </button>
-                        </div>
                       </div>
                     </div>
                   </div>

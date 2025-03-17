@@ -10,7 +10,6 @@ import {
   Clock,
   Phone,
   Mail,
-  MessageSquare,
   FileText,
   TrendingUp,
   Dumbbell,
@@ -236,12 +235,43 @@ export default function TraineeDetailPage() {
   const [editingNotes, setEditingNotes] = useState(false)
   const [notes, setNotes] = useState("")
 
+  // Modal states
+  const [showSessionModal, setShowSessionModal] = useState(false)
+  const [showMeasurementModal, setShowMeasurementModal] = useState(false)
+  const [showPlanModal, setShowPlanModal] = useState(false)
+
+  // Form states
+  const [newSession, setNewSession] = useState({
+    date: new Date().toISOString().split("T")[0],
+    time: "10:00",
+    duration: "60",
+    type: "Strength Training",
+    location: "Main Gym Floor",
+    notes: "",
+  })
+
+  const [newMeasurement, setNewMeasurement] = useState({
+    date: new Date().toISOString().split("T")[0],
+    weight: "",
+    bodyFat: "",
+    chest: "",
+    waist: "",
+    hips: "",
+    arms: "",
+    thighs: "",
+  })
+
+  const [editedPlan, setEditedPlan] = useState<any[]>([])
+
   useEffect(() => {
     if (traineeId) {
       const foundTrainee = traineesData.find((t) => t.id === Number.parseInt(traineeId))
       if (foundTrainee) {
         setTrainee(foundTrainee)
         setNotes(foundTrainee.notes)
+        if (foundTrainee.workoutPlan) {
+          setEditedPlan([...foundTrainee.workoutPlan])
+        }
       } else {
         // Redirect to trainees list if trainee not found
         router.push("/trainer/trainees")
@@ -252,6 +282,69 @@ export default function TraineeDetailPage() {
   const handleSaveNotes = () => {
     setTrainee({ ...trainee, notes: notes })
     setEditingNotes(false)
+  }
+
+  const handleAddSession = () => {
+    const newSessionObj = {
+      id: Date.now(), // Generate a unique ID
+      date: newSession.date,
+      time: `${newSession.time} ${Number.parseInt(newSession.time.split(":")[0]) >= 12 ? "PM" : "AM"}`,
+      duration: `${newSession.duration} min`,
+      type: newSession.type,
+      location: newSession.location,
+      completed: false,
+      notes: newSession.notes,
+    }
+
+    const updatedSessions = trainee.sessions ? [newSessionObj, ...trainee.sessions] : [newSessionObj]
+    setTrainee({ ...trainee, sessions: updatedSessions })
+    setShowSessionModal(false)
+
+    // Reset form
+    setNewSession({
+      date: new Date().toISOString().split("T")[0],
+      time: "10:00",
+      duration: "60",
+      type: "Strength Training",
+      location: "Main Gym Floor",
+      notes: "",
+    })
+  }
+
+  const handleAddMeasurement = () => {
+    const newMeasurementObj = {
+      date: newMeasurement.date,
+      weight: `${newMeasurement.weight} lbs`,
+      bodyFat: `${newMeasurement.bodyFat}%`,
+      chest: `${newMeasurement.chest} in`,
+      waist: `${newMeasurement.waist} in`,
+      hips: `${newMeasurement.hips} in`,
+      arms: `${newMeasurement.arms} in`,
+      thighs: `${newMeasurement.thighs} in`,
+    }
+
+    const updatedMeasurements = trainee.measurements
+      ? [newMeasurementObj, ...trainee.measurements]
+      : [newMeasurementObj]
+    setTrainee({ ...trainee, measurements: updatedMeasurements })
+    setShowMeasurementModal(false)
+
+    // Reset form
+    setNewMeasurement({
+      date: new Date().toISOString().split("T")[0],
+      weight: "",
+      bodyFat: "",
+      chest: "",
+      waist: "",
+      hips: "",
+      arms: "",
+      thighs: "",
+    })
+  }
+
+  const handleSavePlan = () => {
+    setTrainee({ ...trainee, workoutPlan: editedPlan })
+    setShowPlanModal(false)
   }
 
   if (!trainee) {
@@ -292,12 +385,6 @@ export default function TraineeDetailPage() {
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900">{trainee.name}</h1>
                     <p className="text-gray-600">Client since {trainee.startDate}</p>
-                  </div>
-                  <div className="mt-2 md:mt-0 flex space-x-3">
-                    <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50">
-                      <MessageSquare className="h-5 w-5 mr-2" />
-                      Message
-                    </button>
                   </div>
                 </div>
 
@@ -491,7 +578,10 @@ export default function TraineeDetailPage() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-900">Training Sessions</h2>
-                  <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
+                  <button
+                    onClick={() => setShowSessionModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Session
                   </button>
@@ -540,7 +630,10 @@ export default function TraineeDetailPage() {
                     <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions recorded</h3>
                     <p className="text-gray-600 mb-4">Start tracking your sessions with this trainee</p>
-                    <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
+                    <button
+                      onClick={() => setShowSessionModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add First Session
                     </button>
@@ -554,7 +647,10 @@ export default function TraineeDetailPage() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-900">Body Measurements</h2>
-                  <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
+                  <button
+                    onClick={() => setShowMeasurementModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Measurement
                   </button>
@@ -653,7 +749,10 @@ export default function TraineeDetailPage() {
                     <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No measurements recorded</h3>
                     <p className="text-gray-600 mb-4">Start tracking body measurements to monitor progress</p>
-                    <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
+                    <button
+                      onClick={() => setShowMeasurementModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add First Measurement
                     </button>
@@ -667,16 +766,16 @@ export default function TraineeDetailPage() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-bold text-gray-900">Workout Plan</h2>
-                  <div className="flex space-x-3">
-                    <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Plan
-                    </button>
-                    <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Export Plan
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setEditedPlan(trainee.workoutPlan || [])
+                      setShowPlanModal(true)
+                    }}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Plan
+                  </button>
                 </div>
 
                 {trainee.workoutPlan && trainee.workoutPlan.length > 0 ? (
@@ -719,18 +818,27 @@ export default function TraineeDetailPage() {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                              {day.exercises.map((exercise: any, exIndex: number) => (
-                                <tr key={exIndex}>
-                                  <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {exercise.name}
-                                  </td>
-                                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{exercise.sets}</td>
-                                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{exercise.reps}</td>
-                                  <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
-                                    {exercise.weight}
-                                  </td>
-                                </tr>
-                              ))}
+                              {day.exercises.map(
+                                (
+                                  exercise: { name: string; sets: number; reps: string; weight: string },
+                                  exIndex: number,
+                                ) => (
+                                  <tr key={exIndex}>
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
+                                      {exercise.name}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                      {exercise.sets}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                      {exercise.reps}
+                                    </td>
+                                    <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                                      {exercise.weight}
+                                    </td>
+                                  </tr>
+                                ),
+                              )}
                             </tbody>
                           </table>
                         </div>
@@ -742,7 +850,10 @@ export default function TraineeDetailPage() {
                     <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No workout plan created</h3>
                     <p className="text-gray-600 mb-4">Create a personalized workout plan for this trainee</p>
-                    <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
+                    <button
+                      onClick={() => setShowPlanModal(true)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Create Workout Plan
                     </button>
@@ -753,6 +864,483 @@ export default function TraineeDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Session Modal */}
+      {showSessionModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Session</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handleAddSession()
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="session-date" className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    id="session-date"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={newSession.date}
+                    onChange={(e) => setNewSession({ ...newSession, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="session-time" className="block text-sm font-medium text-gray-700 mb-1">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      id="session-time"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newSession.time}
+                      onChange={(e) => setNewSession({ ...newSession, time: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="session-duration" className="block text-sm font-medium text-gray-700 mb-1">
+                      Duration (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      id="session-duration"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newSession.duration}
+                      onChange={(e) => setNewSession({ ...newSession, duration: e.target.value })}
+                      min="15"
+                      max="120"
+                      step="5"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="session-type" className="block text-sm font-medium text-gray-700 mb-1">
+                    Session Type
+                  </label>
+                  <select
+                    id="session-type"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={newSession.type}
+                    onChange={(e) => setNewSession({ ...newSession, type: e.target.value })}
+                    required
+                  >
+                    <option value="Strength Training">Strength Training</option>
+                    <option value="Cardio">Cardio</option>
+                    <option value="Flexibility">Flexibility</option>
+                    <option value="Full Body">Full Body</option>
+                    <option value="Upper Body">Upper Body</option>
+                    <option value="Lower Body">Lower Body</option>
+                    <option value="Yoga">Yoga</option>
+                    <option value="Fitness Assessment">Fitness Assessment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="session-location" className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    id="session-location"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={newSession.location}
+                    onChange={(e) => setNewSession({ ...newSession, location: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="session-notes" className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    id="session-notes"
+                    rows={3}
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={newSession.notes}
+                    onChange={(e) => setNewSession({ ...newSession, notes: e.target.value })}
+                  ></textarea>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSessionModal(false)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                >
+                  Add Session
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Measurement Modal */}
+      {showMeasurementModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Add New Measurement</h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault()
+                handleAddMeasurement()
+              }}
+            >
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="measurement-date" className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    id="measurement-date"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    value={newMeasurement.date}
+                    onChange={(e) => setNewMeasurement({ ...newMeasurement, date: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="measurement-weight" className="block text-sm font-medium text-gray-700 mb-1">
+                      Weight (lbs)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-weight"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.weight}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, weight: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="measurement-bodyfat" className="block text-sm font-medium text-gray-700 mb-1">
+                      Body Fat (%)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-bodyfat"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.bodyFat}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, bodyFat: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="measurement-chest" className="block text-sm font-medium text-gray-700 mb-1">
+                      Chest (in)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-chest"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.chest}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, chest: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="measurement-waist" className="block text-sm font-medium text-gray-700 mb-1">
+                      Waist (in)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-waist"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.waist}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, waist: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label htmlFor="measurement-hips" className="block text-sm font-medium text-gray-700 mb-1">
+                      Hips (in)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-hips"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.hips}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, hips: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="measurement-arms" className="block text-sm font-medium text-gray-700 mb-1">
+                      Arms (in)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-arms"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.arms}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, arms: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="measurement-thighs" className="block text-sm font-medium text-gray-700 mb-1">
+                      Thighs (in)
+                    </label>
+                    <input
+                      type="number"
+                      id="measurement-thighs"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      value={newMeasurement.thighs}
+                      onChange={(e) => setNewMeasurement({ ...newMeasurement, thighs: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowMeasurementModal(false)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                >
+                  Add Measurement
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Plan Modal */}
+      {showPlanModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit Workout Plan</h3>
+
+            <div className="space-y-6">
+              {editedPlan.map((day, dayIndex) => (
+                <div key={dayIndex} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex space-x-4">
+                      <div>
+                        <label htmlFor={`day-${dayIndex}`} className="block text-sm font-medium text-gray-700 mb-1">
+                          Day
+                        </label>
+                        <input
+                          type="text"
+                          id={`day-${dayIndex}`}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          value={day.day}
+                          onChange={(e) => {
+                            const newPlan = [...editedPlan]
+                            newPlan[dayIndex].day = e.target.value
+                            setEditedPlan(newPlan)
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor={`focus-${dayIndex}`} className="block text-sm font-medium text-gray-700 mb-1">
+                          Focus
+                        </label>
+                        <input
+                          type="text"
+                          id={`focus-${dayIndex}`}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                          value={day.focus}
+                          onChange={(e) => {
+                            const newPlan = [...editedPlan]
+                            newPlan[dayIndex].focus = e.target.value
+                            setEditedPlan(newPlan)
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPlan = [...editedPlan]
+                        newPlan.splice(dayIndex, 1)
+                        setEditedPlan(newPlan)
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Exercises</h4>
+                    <div className="space-y-3">
+                      {day.exercises.map(
+                        (exercise: { name: string; sets: number; reps: string; weight: string }, exIndex: number) => (
+                          <div key={exIndex} className="grid grid-cols-12 gap-2 items-center">
+                            <div className="col-span-5">
+                              <input
+                                type="text"
+                                placeholder="Exercise name"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={exercise.name}
+                                onChange={(e) => {
+                                  const newPlan = [...editedPlan]
+                                  newPlan[dayIndex].exercises[exIndex].name = e.target.value
+                                  setEditedPlan(newPlan)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <input
+                                type="number"
+                                placeholder="Sets"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={exercise.sets}
+                                onChange={(e) => {
+                                  const newPlan = [...editedPlan]
+                                  newPlan[dayIndex].exercises[exIndex].sets = Number.parseInt(e.target.value)
+                                  setEditedPlan(newPlan)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <input
+                                type="text"
+                                placeholder="Reps"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={exercise.reps}
+                                onChange={(e) => {
+                                  const newPlan = [...editedPlan]
+                                  newPlan[dayIndex].exercises[exIndex].reps = e.target.value
+                                  setEditedPlan(newPlan)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <input
+                                type="text"
+                                placeholder="Weight"
+                                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                value={exercise.weight}
+                                onChange={(e) => {
+                                  const newPlan = [...editedPlan]
+                                  newPlan[dayIndex].exercises[exIndex].weight = e.target.value
+                                  setEditedPlan(newPlan)
+                                }}
+                              />
+                            </div>
+                            <div className="col-span-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newPlan = [...editedPlan]
+                                  newPlan[dayIndex].exercises.splice(exIndex, 1)
+                                  setEditedPlan(newPlan)
+                                }}
+                                className="text-red-600 hover:text-red-800"
+                              >
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+                          </div>
+                        ),
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newPlan = [...editedPlan]
+                        newPlan[dayIndex].exercises.push({
+                          name: "",
+                          sets: 3,
+                          reps: "10-12",
+                          weight: "",
+                        })
+                        setEditedPlan(newPlan)
+                      }}
+                      className="mt-3 inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Exercise
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditedPlan([
+                    ...editedPlan,
+                    {
+                      day: "",
+                      focus: "",
+                      exercises: [
+                        {
+                          name: "",
+                          sets: 3,
+                          reps: "10-12",
+                          weight: "",
+                        },
+                      ],
+                    },
+                  ])
+                }}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Training Day
+              </button>
+            </div>
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowPlanModal(false)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePlan}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+              >
+                Save Plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
