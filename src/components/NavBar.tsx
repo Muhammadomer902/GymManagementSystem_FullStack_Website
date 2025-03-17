@@ -24,9 +24,9 @@ import {
 const determineUserRole = (pathname: string | null) => {
   // For demo purposes, we'll determine role based on URL path
   // In a real app, this would come from your auth context/API
-  if (pathname?.startsWith("/admin/")) return "admin"
-  if (pathname?.startsWith("/trainer/")) return "trainer"
-  if (pathname?.startsWith("/user/")) return "user"
+  if (pathname?.includes("/admin")) return "admin"
+  if (pathname?.includes("/trainer")) return "trainer"
+  if (pathname?.includes("/user")) return "user"
   return "public" // New role for unauthenticated users
 }
 
@@ -111,8 +111,8 @@ export default function NavBar() {
               My Trainees
             </Link>
             <Link
-              href="/trainer/tainee-request"
-              className={`${isActive("/trainer/tainee-request")} transition-colors duration-200`}
+              href="/trainer/trainee-request"
+              className={`${isActive("/trainer/trainee-request")} transition-colors duration-200`}
               onClick={closeMenu}
             >
               Trainee Requests
@@ -385,7 +385,7 @@ export default function NavBar() {
                 Find Trainers
               </Link>
               <Link
-                href="/user/payment"
+                href="/user/invoice"
                 className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary"
                 onClick={closeMenu}
               >
@@ -406,7 +406,7 @@ export default function NavBar() {
                 My Trainees
               </Link>
               <Link
-                href="/trainer/tainee-request"
+                href="/trainer/trainee-request"
                 className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary"
                 onClick={closeMenu}
               >
