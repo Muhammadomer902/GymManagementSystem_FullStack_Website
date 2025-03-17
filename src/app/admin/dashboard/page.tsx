@@ -266,6 +266,7 @@ export default function AdminDashboard() {
                         period === "day" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("day")}
+                      suppressHydrationWarning
                     >
                       Today
                     </button>
@@ -274,6 +275,7 @@ export default function AdminDashboard() {
                         period === "week" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("week")}
+                      suppressHydrationWarning
                     >
                       This Week
                     </button>
@@ -282,6 +284,7 @@ export default function AdminDashboard() {
                         period === "month" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("month")}
+                      suppressHydrationWarning
                     >
                       This Month
                     </button>
