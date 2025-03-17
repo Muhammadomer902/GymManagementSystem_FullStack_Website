@@ -151,11 +151,13 @@ export default function TraineeRequestPage() {
                 placeholder="Search requests..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                suppressHydrationWarning
               />
             </div>
             <button
               onClick={toggleFilter}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
+              suppressHydrationWarning
             >
               <Filter className="h-5 w-5 mr-2" />
               Filter
@@ -175,6 +177,7 @@ export default function TraineeRequestPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                   value={filters.status}
                   onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  suppressHydrationWarning
                 >
                   <option value="all">All Statuses</option>
                   <option value="pending">Pending</option>
@@ -191,6 +194,7 @@ export default function TraineeRequestPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                   value={filters.dateRange}
                   onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+                  suppressHydrationWarning
                 >
                   <option value="all">All Time</option>
                   <option value="last-week">Last 7 Days</option>
@@ -248,6 +252,7 @@ export default function TraineeRequestPage() {
                         <button
                           onClick={() => toggleRequestDetails(request.id)}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                          suppressHydrationWarning
                         >
                           {expandedRequest === request.id ? "Hide Details" : "View Details"}
                           {expandedRequest === request.id ? (
@@ -262,6 +267,7 @@ export default function TraineeRequestPage() {
                             <button
                               onClick={() => handleReject(request.id)}
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                              suppressHydrationWarning
                             >
                               <XCircle className="h-4 w-4 mr-1 text-red-500" />
                               Reject
@@ -269,6 +275,7 @@ export default function TraineeRequestPage() {
                             <button
                               onClick={() => handleAccept(request.id)}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                              suppressHydrationWarning
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
                               Accept
