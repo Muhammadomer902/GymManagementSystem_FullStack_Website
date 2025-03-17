@@ -2,17 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  XCircle,
-  MessageSquare,
-  Filter,
-  Search,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react"
+import { Calendar, Clock, CheckCircle, XCircle, Filter, Search, ChevronDown, ChevronUp } from "lucide-react"
 
 // Mock data for trainee requests
 const traineeRequests = [
@@ -329,15 +319,6 @@ export default function TraineeRequestPage() {
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
                           Accept Request
-                        </button>
-                      </div>
-                    )}
-
-                    {request.status !== "pending" && (
-                      <div className="flex justify-end">
-                        <button className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm">
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Message Client
                         </button>
                       </div>
                     )}
