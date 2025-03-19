@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Menu,
   X,
@@ -18,6 +18,7 @@ import {
   Home,
   LogIn,
   UserPlus,
+  Settings,
 } from "lucide-react"
 
 // This would come from your authentication system
@@ -33,11 +34,27 @@ const determineUserRole = (pathname: string | null) => {
 export default function NavBar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [userRole, setUserRole] = useState<"admin" | "trainer" | "user" | "public">("public")
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const profileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setUserRole(determineUserRole(pathname))
   }, [pathname])
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
@@ -45,6 +62,35 @@ export default function NavBar() {
 
   const closeMenu = () => {
     setIsMenuOpen(false)
+  }
+
+  const toggleProfileMenu = () => {
+    setIsProfileOpen(!isProfileOpen)
+  }
+
+  const closeProfileMenu = () => {
+    setIsProfileOpen(false)
+  }
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        // Redirect to home page after logout
+        router.push('/')
+        router.refresh()
+      } else {
+        console.error('Logout failed')
+      }
+    } catch (error) {
+      console.error('Logout error:', error)
+    }
   }
 
   const isActive = (path: string) => {
@@ -238,9 +284,12 @@ export default function NavBar() {
           </button>
         </div>
 
-        <div className="ml-4 relative flex-shrink-0 group">
+        <div className="ml-4 relative flex-shrink-0 group" ref={profileRef}>
           <div>
-            <button className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+            <button 
+              onClick={toggleProfileMenu}
+              className="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
               <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
                 {userRole === "admin" ? "A" : userRole === "trainer" ? "T" : "U"}
               </div>
@@ -251,10 +300,42 @@ export default function NavBar() {
                   </p>
                   <p className="text-xs font-medium text-gray-500 group-hover:text-gray-700">View profile</p>
                 </div>
-                <ChevronDown className="ml-2 h-4 w-4 text-gray-500" />
+                <ChevronDown className={`ml-2 h-4 w-4 text-gray-500 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
           </div>
+          
+          {/* Profile dropdown */}
+          {isProfileOpen && (
+            <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+              <Link 
+                href={`/${userRole}/profile`} 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                onClick={closeProfileMenu}
+              >
+                <User className="mr-2 h-4 w-4" />
+                Your Profile
+              </Link>
+              <Link 
+                href={`/${userRole}/settings`} 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                onClick={closeProfileMenu}
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Link>
+              <button 
+                onClick={() => {
+                  closeProfileMenu()
+                  handleLogout()
+                }}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </>
     )
@@ -447,7 +528,10 @@ export default function NavBar() {
           </Link>
 
           <div className="border-t border-gray-200 pt-4 pb-3">
-            <div className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary cursor-pointer">
+            <div 
+              onClick={handleLogout}
+              className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary cursor-pointer"
+            >
               <LogOut className="mr-4 h-6 w-6 text-gray-500" />
               Sign out
             </div>

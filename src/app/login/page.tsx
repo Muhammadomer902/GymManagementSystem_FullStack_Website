@@ -19,18 +19,40 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      // For demo purposes, redirect based on email domain
-      if (email.includes("admin")) {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || 'Login failed')
+        setIsLoading(false)
+        return
+      }
+
+      // Redirect based on user role from the response
+      if (data.role === 'admin') {
         router.push("/admin/dashboard")
-      } else if (email.includes("trainer")) {
+      } else if (data.role === 'trainer') {
         router.push("/trainer/dashboard")
       } else {
         router.push("/user/workout-plan")
       }
+    } catch (error) {
+      console.error('Login error:', error)
+      alert('An error occurred during login')
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (

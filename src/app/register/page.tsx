@@ -28,8 +28,28 @@ export default function RegisterPage() {
 
     setIsLoading(true)
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          role,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || 'Registration failed')
+        setIsLoading(false)
+        return
+      }
+
       // Redirect to the appropriate dashboard based on selected role
       if (role === "admin") {
         router.push("/admin/dashboard")
@@ -38,8 +58,12 @@ export default function RegisterPage() {
       } else {
         router.push("/user/workout-plan")
       }
+    } catch (error) {
+      console.error('Registration error:', error)
+      alert('An error occurred during registration')
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   return (
