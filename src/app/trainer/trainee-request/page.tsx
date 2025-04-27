@@ -1,89 +1,73 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
-import { Calendar, Clock, CheckCircle, XCircle, Filter, Search, ChevronDown, ChevronUp } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Clock, CheckCircle, XCircle, Filter, Search, ChevronDown, ChevronUp } from "lucide-react"
+import Link from "next/link"
 
-// Mock data for trainee requests
-const traineeRequests = [
-  {
-    id: 1,
-    name: "Emily Johnson",
-    email: "emily.johnson@example.com",
-    image: "/placeholder.svg?height=200&width=200&text=EJ",
-    requestDate: "2023-11-18",
-    goals: "Weight loss and toning",
-    preferredDays: ["Monday", "Wednesday", "Friday"],
-    preferredTime: "Evening (6PM - 9PM)",
-    message:
-      "I'm looking to lose about 20 pounds and tone my muscles. I've been struggling with consistency and need someone to keep me accountable. I have some experience with weight training but would like to improve my form.",
-    status: "pending",
-  },
-  {
-    id: 2,
-    name: "Michael Brown",
-    email: "michael.brown@example.com",
-    image: "/placeholder.svg?height=200&width=200&text=MB",
-    requestDate: "2023-11-15",
-    goals: "Muscle building",
-    preferredDays: ["Tuesday", "Thursday", "Saturday"],
-    preferredTime: "Morning (6AM - 9AM)",
-    message:
-      "I want to build muscle mass and strength. I've been working out for about a year but have plateaued. Looking for a trainer who can help me break through and reach the next level.",
-    status: "pending",
-  },
-  {
-    id: 3,
-    name: "Sarah Davis",
-    email: "sarah.davis@example.com",
-    image: "/placeholder.svg?height=200&width=200&text=SD",
-    requestDate: "2023-11-10",
-    goals: "Improve flexibility and core strength",
-    preferredDays: ["Monday", "Thursday"],
-    preferredTime: "Afternoon (2PM - 5PM)",
-    message:
-      "I'm a former dancer looking to improve my flexibility and core strength. I have some chronic back pain that I'd like to address through proper exercise and stretching routines.",
-    status: "accepted",
-  },
-  {
-    id: 4,
-    name: "David Wilson",
-    email: "david.wilson@example.com",
-    image: "/placeholder.svg?height=200&width=200&text=DW",
-    requestDate: "2023-11-05",
-    goals: "Sports performance",
-    preferredDays: ["Wednesday", "Friday", "Sunday"],
-    preferredTime: "Morning (9AM - 12PM)",
-    message:
-      "I'm training for a marathon and need help with strength training to complement my running. I'm also interested in nutrition advice to optimize my performance.",
-    status: "rejected",
-  },
-]
+interface TrainingSessionRequest {
+  _id: string;
+  member: { _id: string; name: string; email: string };
+  requestedDate: string;
+  status: string;
+  message?: string;
+  responseMessage?: string;
+}
 
 export default function TraineeRequestPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterOpen, setFilterOpen] = useState(false)
-  const [expandedRequest, setExpandedRequest] = useState<number | null>(null)
+  const [expandedRequest, setExpandedRequest] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     status: "all",
     dateRange: "all",
   })
-  const [requests, setRequests] = useState(traineeRequests)
+  const [requests, setRequests] = useState<TrainingSessionRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState<{ [id: string]: boolean }>({})
+
+  useEffect(() => {
+    fetchRequests()
+  }, [])
+
+  const fetchRequests = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/training-session-requests/trainer")
+      if (res.ok) {
+        const data = await res.json()
+        setRequests(data.requests)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const toggleFilter = () => {
     setFilterOpen(!filterOpen)
   }
 
-  const toggleRequestDetails = (id: number) => {
+  const toggleRequestDetails = (id: string) => {
     setExpandedRequest(expandedRequest === id ? null : id)
   }
 
-  const handleAccept = (id: number) => {
-    setRequests(requests.map((request) => (request.id === id ? { ...request, status: "accepted" } : request)))
-  }
-
-  const handleReject = (id: number) => {
-    setRequests(requests.map((request) => (request.id === id ? { ...request, status: "rejected" } : request)))
+  const handleAction = async (id: string, action: "accepted" | "rejected") => {
+    setActionLoading((prev) => ({ ...prev, [id]: true }))
+    try {
+      const res = await fetch("/api/training-session-requests/trainer", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requestId: id, status: action })
+      })
+      if (res.ok) {
+        fetchRequests()
+      }
+    } catch {
+      // ignore
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [id]: false }))
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -114,13 +98,12 @@ export default function TraineeRequestPage() {
 
   const filteredRequests = requests.filter((request) => {
     const matchesSearch =
-      request.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.goals.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.message.toLowerCase().includes(searchTerm.toLowerCase())
+      request.member?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.message?.toLowerCase().includes(searchTerm.toLowerCase())
 
     const matchesStatus = filters.status === "all" || request.status === filters.status
 
-    const requestDate = new Date(request.requestDate)
+    const requestDate = new Date(request.requestedDate)
     const today = new Date()
     const matchesDateRange =
       filters.dateRange === "all" ||
@@ -206,56 +189,50 @@ export default function TraineeRequestPage() {
         </div>
 
         {/* Requests List */}
-        {filteredRequests.length > 0 ? (
+        {loading ? (
+          <div className="text-center text-gray-500">Loading requests...</div>
+        ) : filteredRequests.length > 0 ? (
           <div className="space-y-6">
             {filteredRequests.map((request) => (
-              <div key={request.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              <div key={request._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                 <div className="p-6">
                   <div className="md:flex">
                     <div className="md:flex-shrink-0">
-                      <div className="h-24 w-24 rounded-full overflow-hidden relative">
-                        <Image
-                          src={request.image || "/placeholder.svg"}
-                          alt={request.name}
-                          fill
-                          className="object-cover"
-                        />
+                      <div className="h-24 w-24 rounded-full overflow-hidden relative flex items-center justify-center bg-blue-100 text-blue-700 text-3xl font-bold">
+                        {request.member?.name?.split(" ").map((n) => n[0]).join("").toUpperCase().substring(0, 2)}
                       </div>
                     </div>
                     <div className="mt-4 md:mt-0 md:ml-6 flex-1">
                       <div className="flex flex-wrap justify-between items-start">
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900">{request.name}</h3>
-                          <p className="text-gray-600">{request.email}</p>
+                          <h3 className="text-xl font-bold text-gray-900">{request.member?.name}</h3>
+                          <p className="text-gray-600">{request.member?.email}</p>
+                          {request.member && (
+                            <Link
+                              href={`/trainer/trainees/${request.member._id}`}
+                              className="inline-block mt-2 px-3 py-1.5 border border-blue-600 text-blue-600 rounded-md bg-white hover:bg-blue-50 text-sm font-semibold"
+                            >
+                              View Profile
+                            </Link>
+                          )}
                         </div>
                         <div className="mt-2 md:mt-0">{getStatusBadge(request.status)}</div>
                       </div>
 
                       <div className="mt-2">
                         <p className="text-gray-700">
-                          <span className="font-medium">Goals:</span> {request.goals}
+                          <span className="font-medium">Requested Date:</span> {new Date(request.requestedDate).toLocaleString()}
                         </p>
-                      </div>
-
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Calendar className="h-4 w-4 text-gray-400 mr-1" />
-                          <span>Requested on {request.requestDate}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock className="h-4 w-4 text-gray-400 mr-1" />
-                          <span>{request.preferredTime}</span>
-                        </div>
                       </div>
 
                       <div className="mt-4 flex flex-wrap justify-between items-center">
                         <button
-                          onClick={() => toggleRequestDetails(request.id)}
+                          onClick={() => toggleRequestDetails(request._id)}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                           suppressHydrationWarning
                         >
-                          {expandedRequest === request.id ? "Hide Details" : "View Details"}
-                          {expandedRequest === request.id ? (
+                          {expandedRequest === request._id ? "Hide Details" : "View Details"}
+                          {expandedRequest === request._id ? (
                             <ChevronUp className="ml-1 h-4 w-4" />
                           ) : (
                             <ChevronDown className="ml-1 h-4 w-4" />
@@ -265,16 +242,18 @@ export default function TraineeRequestPage() {
                         {request.status === "pending" && (
                           <div className="mt-2 md:mt-0 flex space-x-3">
                             <button
-                              onClick={() => handleReject(request.id)}
-                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                              onClick={() => handleAction(request._id, "rejected")}
+                              disabled={actionLoading[request._id]}
+                              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm disabled:opacity-50"
                               suppressHydrationWarning
                             >
                               <XCircle className="h-4 w-4 mr-1 text-red-500" />
                               Reject
                             </button>
                             <button
-                              onClick={() => handleAccept(request.id)}
-                              className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                              onClick={() => handleAction(request._id, "accepted")}
+                              disabled={actionLoading[request._id]}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm disabled:opacity-50"
                               suppressHydrationWarning
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
@@ -288,45 +267,20 @@ export default function TraineeRequestPage() {
                 </div>
 
                 {/* Expanded Details */}
-                {expandedRequest === request.id && (
+                {expandedRequest === request._id && (
                   <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
                     <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Message from Client</h4>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">Message from Member</h4>
                       <div className="bg-white p-3 rounded-md border border-gray-200">
                         <p className="text-gray-700">{request.message}</p>
                       </div>
                     </div>
-
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">Preferred Days</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {request.preferredDays.map((day) => (
-                          <span
-                            key={day}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            {day}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {request.status === "pending" && (
-                      <div className="flex justify-end space-x-4">
-                        <button
-                          onClick={() => handleReject(request.id)}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
-                        >
-                          <XCircle className="h-4 w-4 mr-2 text-red-500" />
-                          Reject Request
-                        </button>
-                        <button
-                          onClick={() => handleAccept(request.id)}
-                          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Accept Request
-                        </button>
+                    {request.responseMessage && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium text-green-700 mb-2">Your Response</h4>
+                        <div className="bg-green-50 p-3 rounded-md border border-green-200">
+                          <p className="text-green-700">{request.responseMessage}</p>
+                        </div>
                       </div>
                     )}
                   </div>

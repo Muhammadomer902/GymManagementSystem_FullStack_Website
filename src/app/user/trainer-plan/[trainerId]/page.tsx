@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { Calendar, Clock, Dumbbell, Star, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Calendar, Clock, Dumbbell, Star, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, ShoppingCart } from "lucide-react"
 
 // Mock data for trainers
 const trainers = [
@@ -125,14 +125,64 @@ const trainers = [
   },
 ]
 
+// Define interfaces for better type safety
+interface Exercise {
+  name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+  notes?: string;
+}
+
+interface WorkoutPlan {
+  _id: string;
+  title: string;
+  description: string;
+  level: string;
+  duration: number;
+  schedule: string;
+  exercises: Exercise[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Define a type for the trainer
+interface Review {
+  id: number;
+  user: string;
+  rating: number;
+  date: string;
+  comment: string;
+}
+
+interface Trainer {
+  id: number;
+  name: string;
+  specialty: string;
+  experience: string;
+  rating: number;
+  reviews: number;
+  reviewsList: Review[];
+  location: string;
+  availability: string;
+  image: string;
+  certifications: string[];
+  bio: string;
+  price: string;
+}
+
 export default function SingleTrainerPlanPage() {
-  const params = useParams()
+  const params = useParams() || {}
   const router = useRouter()
   const trainerId = params.trainerId as string
 
-  const [trainer, setTrainer] = useState<any>(null)
-  const [expandedPlan, setExpandedPlan] = useState<number | null>(null)
+  const [trainer, setTrainer] = useState<Trainer | null>(null)
+  const [expandedPlan, setExpandedPlan] = useState<string | null>(null)
   const [showReviewForm, setShowReviewForm] = useState(false)
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([])
+  const [loadingPlans, setLoadingPlans] = useState(true)
+  const [buyingPlan, setBuyingPlan] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const [reviewFormData, setReviewFormData] = useState<{
     rating: number
@@ -157,6 +207,8 @@ export default function SingleTrainerPlanPage() {
       const foundTrainer = trainers.find((t) => t.id === Number.parseInt(trainerId))
       if (foundTrainer) {
         setTrainer(foundTrainer)
+        // Fetch real workout plans for this trainer
+        fetchTrainerWorkoutPlans(trainerId)
       } else {
         // Redirect to trainers list if trainer not found
         router.push("/user/get-trainer")
@@ -164,7 +216,51 @@ export default function SingleTrainerPlanPage() {
     }
   }, [trainerId, router])
 
-  const togglePlanDetails = (id: number) => {
+  const fetchTrainerWorkoutPlans = async (trainerId: string) => {
+    setLoadingPlans(true)
+    try {
+      console.log('Fetching workout plans with real trainer ID:', trainerId);
+      
+      // Convert to MongoDB ObjectId format if it's not already (if needed)
+      const mongoIdTrainerId = isNaN(Number(trainerId)) ? trainerId : trainerId;
+      
+      const response = await fetch(`/api/workout-plans?trainerId=${mongoIdTrainerId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch workout plans:', response.status, errorText);
+        throw new Error(`Failed to fetch workout plans: ${response.status} ${errorText}`);
+      }
+      const data = await response.json();
+      console.log('Workout plans received:', data);
+      setWorkoutPlans(data);
+      
+      // Force display for testing (remove this later)
+      if (data.length === 0) {
+        const tempWorkoutPlan: WorkoutPlan = {
+          _id: "test123",
+          title: "Temporary Test Plan",
+          description: "This is a temporary plan for testing",
+          level: "Beginner",
+          duration: 30,
+          schedule: "3x per week",
+          exercises: [
+            { name: "Push-ups", sets: 3, reps: "10", rest: "60 sec" },
+            { name: "Squats", sets: 3, reps: "15", rest: "60 sec" }
+          ],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setWorkoutPlans([tempWorkoutPlan]);
+      }
+    } catch (error) {
+      console.error('Error fetching workout plans:', error);
+      setError('Failed to load workout plans');
+    } finally {
+      setLoadingPlans(false);
+    }
+  }
+
+  const togglePlanDetails = (id: string) => {
     setExpandedPlan(expandedPlan === id ? null : id)
   }
 
@@ -213,6 +309,21 @@ export default function SingleTrainerPlanPage() {
     alert("Your request has been sent to the trainer!")
     setRequestFormData({ message: "", preferredDays: [], preferredTime: "" })
     setShowRequestForm(false)
+  }
+
+  const handleBuyPlan = async (planId: string) => {
+    setBuyingPlan(planId)
+    try {
+      // In a real app, you would implement actual payment processing
+      // For now, just simulate a purchase
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      alert(`You have successfully purchased this workout plan!`)
+    } catch (err: unknown) {
+      console.error('Purchase error:', err)
+      alert('Failed to process your purchase. Please try again.')
+    } finally {
+      setBuyingPlan(null)
+    }
   }
 
   if (!trainer) {
@@ -432,31 +543,44 @@ export default function SingleTrainerPlanPage() {
 
         {/* Training Plans */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Training Plans</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Workout Plans</h2>
 
-          {trainer.plans.length > 0 ? (
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+
+          {loadingPlans ? (
+            <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Loading workout plans...</p>
+            </div>
+          ) : workoutPlans.length > 0 ? (
             <div className="space-y-6">
-              {trainer.plans.map((plan: any) => (
-                <div key={plan.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {workoutPlans.map((plan) => (
+                <div key={plan._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <div className="p-6">
                     <div className="md:flex">
                       <div className="md:flex-shrink-0">
-                        <div className="h-48 w-full md:w-64 rounded-lg overflow-hidden relative">
-                          <Image src={plan.image || "/placeholder.svg"} alt={plan.name} fill className="object-cover" />
+                        <div className="h-48 w-full md:w-64 rounded-lg overflow-hidden relative bg-blue-100">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Dumbbell className="h-16 w-16 text-blue-500" />
+                          </div>
                         </div>
                       </div>
                       <div className="mt-4 md:mt-0 md:ml-6 flex-1">
-                        <h3 className="text-xl font-bold text-gray-900">{plan.name}</h3>
+                        <h3 className="text-xl font-bold text-gray-900">{plan.title}</h3>
                         <p className="mt-1 text-gray-600">{plan.description}</p>
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
                           <div className="flex items-center text-sm text-gray-500">
                             <Calendar className="h-5 w-5 text-blue-600 mr-1" />
-                            <span>{plan.duration}</span>
+                            <span>{plan.duration} minutes</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Clock className="h-5 w-5 text-blue-600 mr-1" />
-                            <span>{plan.sessionsPerWeek}x per week</span>
+                            <span>{plan.schedule}</span>
                           </div>
                           <div className="flex items-center text-sm text-gray-500">
                             <Dumbbell className="h-5 w-5 text-blue-600 mr-1" />
@@ -465,26 +589,34 @@ export default function SingleTrainerPlanPage() {
                         </div>
 
                         <div className="mt-4 flex flex-wrap items-center justify-between">
-                          <p className="text-lg font-bold text-gray-900">{plan.price}</p>
+                          <p className="text-lg font-bold text-gray-900">$49.99</p>
                           <div className="mt-2 md:mt-0 flex space-x-3">
                             <button
-                              onClick={() => togglePlanDetails(plan.id)}
+                              onClick={() => togglePlanDetails(plan._id)}
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                               suppressHydrationWarning
                             >
-                              {expandedPlan === plan.id ? "Less Info" : "More Info"}
-                              {expandedPlan === plan.id ? (
+                              {expandedPlan === plan._id ? "Less Info" : "More Info"}
+                              {expandedPlan === plan._id ? (
                                 <ChevronUp className="ml-1 h-4 w-4" />
                               ) : (
                                 <ChevronDown className="ml-1 h-4 w-4" />
                               )}
                             </button>
                             <button
-                              onClick={() => setShowRequestForm(true)}
-                              className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
+                              onClick={() => handleBuyPlan(plan._id)}
+                              disabled={buyingPlan === plan._id}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-green-600 text-white hover:bg-green-700 text-sm"
                               suppressHydrationWarning
                             >
-                              Request Plan
+                              {buyingPlan === plan._id ? (
+                                <>Processing...</>
+                              ) : (
+                                <>
+                                  <ShoppingCart className="mr-1 h-4 w-4" />
+                                  Buy Plan
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -493,19 +625,21 @@ export default function SingleTrainerPlanPage() {
                   </div>
 
                   {/* Expanded Plan Details */}
-                  {expandedPlan === plan.id && (
+                  {expandedPlan === plan._id && (
                     <div className="border-t border-gray-200 px-6 py-4">
                       <h4 className="text-lg font-medium text-gray-900 mb-4">Plan Details</h4>
-                      <p className="text-gray-700 mb-4">
-                        This is where detailed information about the plan would be displayed, including:
-                      </p>
+                      
+                      <h5 className="font-medium text-gray-800 mt-4 mb-2">Exercises:</h5>
                       <ul className="list-disc pl-5 mb-4 text-gray-700 space-y-2">
-                        <li>Specific workout types included</li>
-                        <li>Equipment needed</li>
-                        <li>Expected results</li>
-                        <li>Ideal candidates for this plan</li>
-                        <li>Any prerequisites or fitness requirements</li>
+                        {plan.exercises.map((exercise, index) => (
+                          <li key={index}>
+                            <span className="font-medium">{exercise.name}</span>: {exercise.sets} sets × {exercise.reps}, 
+                            rest: {exercise.rest}
+                            {exercise.notes && <span className="text-sm text-gray-500 ml-2">({exercise.notes})</span>}
+                          </li>
+                        ))}
                       </ul>
+                      
                       <p className="text-gray-700">
                         Contact {trainer.name} for more information about this plan or to discuss customization options.
                       </p>
@@ -517,9 +651,9 @@ export default function SingleTrainerPlanPage() {
           ) : (
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No training plans available</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No workout plans available</h3>
               <p className="text-gray-600 mb-6">
-                This trainer hasn't published any training plans yet. You can still request custom training.
+                This trainer hasn&apos;t published any workout plans yet. You can still request custom training.
               </p>
               <button
                 onClick={() => setShowRequestForm(true)}
@@ -602,7 +736,7 @@ export default function SingleTrainerPlanPage() {
 
           {trainer.reviewsList.length > 0 ? (
             <div className="space-y-6">
-              {trainer.reviewsList.map((review: any) => (
+              {trainer.reviewsList.map((review: Review) => (
                 <div key={review.id} className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
@@ -643,7 +777,7 @@ export default function SingleTrainerPlanPage() {
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
-              <p className="text-gray-600 mb-6">Be the first to review {trainer.name}'s training services.</p>
+              <p className="text-gray-600 mb-6">Be the first to review {trainer.name}&apos;s training services.</p>
               <button
                 onClick={() => setShowReviewForm(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700"

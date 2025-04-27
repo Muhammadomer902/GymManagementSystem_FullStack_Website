@@ -1,48 +1,12 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { AlertCircle, CheckCircle, Clock, MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react"
 
-// Mock data for previous complaints
-const previousComplaints = [
-  {
-    id: 1,
-    subject: "Equipment Issue",
-    description:
-      "The treadmill in the cardio area (machine #5) is making a loud noise when used at speeds above 6 mph.",
-    date: "2023-11-10",
-    status: "resolved",
-    response:
-      "Thank you for reporting this issue. Our maintenance team has fixed the treadmill and it is now working properly.",
-    responseDate: "2023-11-12",
-  },
-  {
-    id: 2,
-    subject: "Scheduling Problem",
-    description: "I was charged for a session on November 5th that was canceled more than 24 hours in advance.",
-    date: "2023-11-07",
-    status: "in-progress",
-    response: null,
-    responseDate: null,
-  },
-  {
-    id: 3,
-    subject: "Cleanliness Concern",
-    description:
-      "The men's locker room was not properly cleaned this morning. There were wet towels on the floor and the trash bins were overflowing.",
-    date: "2023-10-25",
-    status: "resolved",
-    response:
-      "We apologize for the inconvenience. We have addressed this with our cleaning staff and implemented additional checks throughout  We have addressed this with our cleaning staff and implemented additional checks throughout the day to ensure all facilities remain clean and comfortable for our members.",
-    responseDate: "2023-10-26",
-  },
-]
-
 export default function ComplaintPage() {
-  const [expandedComplaint, setExpandedComplaint] = useState<number | null>(null)
+  const [expandedComplaint, setExpandedComplaint] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     subject: "",
     category: "",
@@ -50,8 +14,30 @@ export default function ComplaintPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [complaints, setComplaints] = useState<any[]>([])
+  const [loadingComplaints, setLoadingComplaints] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const toggleComplaintDetails = (id: number) => {
+  const fetchComplaints = async () => {
+    setLoadingComplaints(true)
+    setFetchError(null)
+    try {
+      const res = await fetch("/api/complaints/user")
+      if (!res.ok) throw new Error("Failed to fetch complaints")
+      const data = await res.json()
+      setComplaints(data.complaints)
+    } catch (err) {
+      setFetchError("Could not load complaints. Please try again later.")
+    } finally {
+      setLoadingComplaints(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchComplaints()
+  }, [])
+
+  const toggleComplaintDetails = (id: string) => {
     setExpandedComplaint(expandedComplaint === id ? null : id)
   }
 
@@ -63,25 +49,25 @@ export default function ComplaintPage() {
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      setSubmitSuccess(true)
-      setFormData({
-        subject: "",
-        category: "",
-        description: "",
+    try {
+      const res = await fetch("/api/complaints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       })
-
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setSubmitSuccess(false)
-      }, 5000)
-    }, 1500)
+      if (!res.ok) throw new Error("Failed to submit complaint")
+      setSubmitSuccess(true)
+      setFormData({ subject: "", category: "", description: "" })
+      fetchComplaints()
+      setTimeout(() => setSubmitSuccess(false), 5000)
+    } catch (err) {
+      alert("There was an error submitting your complaint. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getStatusBadge = (status: string) => {
@@ -129,7 +115,7 @@ export default function ComplaintPage() {
                   <CheckCircle className="h-5 w-5 mr-2 mt-0.5" />
                   <div>
                     <p className="font-medium">Complaint submitted successfully!</p>
-                    <p>We'll review your complaint and get back to you as soon as possible.</p>
+                    <p>We&apos;ll review your complaint and get back to you as soon as possible.</p>
                   </div>
                 </div>
               )}
@@ -240,7 +226,7 @@ export default function ComplaintPage() {
               <ul className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-start">
                   <span className="text-blue-600 font-bold mr-2">•</span>
-                  <span>Be specific about the issue you're experiencing.</span>
+                  <span>Be specific about the issue you&apos;re experiencing.</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-600 font-bold mr-2">•</span>
@@ -248,7 +234,7 @@ export default function ComplaintPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-600 font-bold mr-2">•</span>
-                  <span>Maintain a respectful tone, even if you're frustrated.</span>
+                  <span>Maintain a respectful tone, even if you&apos;re frustrated.</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-600 font-bold mr-2">•</span>
@@ -286,15 +272,19 @@ export default function ComplaintPage() {
         <div className="mt-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Previous Complaints</h2>
 
-          {previousComplaints.length > 0 ? (
+          {loadingComplaints ? (
+            <div className="text-center text-gray-500">Loading complaints...</div>
+          ) : fetchError ? (
+            <div className="text-center text-red-500">{fetchError}</div>
+          ) : complaints.length > 0 ? (
             <div className="space-y-4">
-              {previousComplaints.map((complaint) => (
-                <div key={complaint.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+              {complaints.map((complaint) => (
+                <div key={complaint._id} className="bg-white rounded-lg shadow-sm overflow-hidden">
                   <div className="p-4 sm:p-6">
                     <div className="flex flex-wrap justify-between items-start">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{complaint.subject}</h3>
-                        <p className="mt-1 text-sm text-gray-500">Submitted on {complaint.date}</p>
+                        <p className="mt-1 text-sm text-gray-500">Submitted on {new Date(complaint.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="mt-2 sm:mt-0">{getStatusBadge(complaint.status)}</div>
                     </div>
@@ -305,11 +295,11 @@ export default function ComplaintPage() {
 
                     <div className="mt-4 flex justify-end">
                       <button
-                        onClick={() => toggleComplaintDetails(complaint.id)}
+                        onClick={() => toggleComplaintDetails(complaint._id)}
                         className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                       >
-                        {expandedComplaint === complaint.id ? "Hide Details" : "View Details"}
-                        {expandedComplaint === complaint.id ? (
+                        {expandedComplaint === complaint._id ? "Hide Details" : "View Details"}
+                        {expandedComplaint === complaint._id ? (
                           <ChevronUp className="ml-1 h-4 w-4" />
                         ) : (
                           <ChevronDown className="ml-1 h-4 w-4" />
@@ -319,7 +309,7 @@ export default function ComplaintPage() {
                   </div>
 
                   {/* Expanded Details */}
-                  {expandedComplaint === complaint.id && (
+                  {expandedComplaint === complaint._id && (
                     <div className="border-t border-gray-200 px-4 py-5 sm:px-6 bg-gray-50">
                       <div className="mb-4">
                         <h4 className="text-sm font-medium text-gray-500">Full Description</h4>
@@ -328,14 +318,14 @@ export default function ComplaintPage() {
 
                       {complaint.response ? (
                         <div>
-                          <h4 className="text-sm font-medium text-gray-500">Response (on {complaint.responseDate})</h4>
+                          <h4 className="text-sm font-medium text-gray-500">Response{complaint.responseDate ? ` (on ${new Date(complaint.responseDate).toLocaleDateString()})` : ""}</h4>
                           <div className="mt-1 bg-white p-3 rounded-md border border-gray-200">
                             <p className="text-gray-900">{complaint.response}</p>
                           </div>
                         </div>
                       ) : (
                         <div className="text-sm text-gray-500 italic">
-                          No response yet. We'll notify you when we have an update.
+                          No response yet. We&apos;ll notify you when we have an update.
                         </div>
                       )}
                     </div>
@@ -347,7 +337,7 @@ export default function ComplaintPage() {
             <div className="bg-white rounded-lg shadow-sm p-8 text-center">
               <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No previous complaints</h3>
-              <p className="text-gray-600">You haven't submitted any complaints yet.</p>
+              <p className="text-gray-600">You haven&apos;t submitted any complaints yet.</p>
             </div>
           )}
         </div>

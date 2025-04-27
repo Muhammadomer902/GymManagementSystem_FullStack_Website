@@ -37,26 +37,23 @@ export function generateToken(userId: string, role: string) {
 export function verifyToken(
   token: string
 ): { userId: string; role: string } | null {
-  // This is a simplified mock implementation
-  if (!token || !token.startsWith("demo-token-")) {
+  const secret = process.env.JWT_SECRET || "your-secret-key";
+  try {
+    const decoded = jwt.verify(token, secret) as {
+      userId: string;
+      role: string;
+    };
+    return { userId: decoded.userId, role: decoded.role };
+  } catch (err) {
     return null;
   }
-
-  // Extract user ID from our mock token format: demo-token-{userId}-{timestamp}
-  const parts = token.split("-");
-  if (parts.length < 3) {
-    return null;
-  }
-
-  const userId = parts[2];
-  return { userId, role: "user" }; // In a real app, extract role from JWT
 }
 
 /**
  * Get the current user from the token in cookies
  */
-export function getCurrentUser() {
-  const cookieStore = cookies();
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token) {
