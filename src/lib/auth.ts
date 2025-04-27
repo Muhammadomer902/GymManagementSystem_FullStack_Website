@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
+import jwt from "jsonwebtoken";
 
 /**
  * Hash a password using bcrypt
@@ -23,8 +24,10 @@ export async function comparePasswords(
  * Generate a simple token (for demo purposes)
  * In a real app, use a proper JWT library
  */
-export function generateToken(userId: string, role: string): string {
-  return `demo-token-${userId}-${Date.now()}`;
+export function generateToken(userId: string, role: string) {
+  const secret = process.env.JWT_SECRET || "your-secret-key";
+  // You can add more fields if you want
+  return jwt.sign({ userId, role }, secret, { expiresIn: "7d" });
 }
 
 /**

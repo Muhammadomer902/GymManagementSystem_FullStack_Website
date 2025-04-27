@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import {
@@ -14,121 +14,103 @@ import {
   DollarSign,
   Calendar,
   ChevronRight,
+  Trash2,
+  User,
 } from "lucide-react"
 
-// Mock data for trainer payments
-const trainerPayments = [
-  {
-    id: 1,
-    trainer: {
-      id: 1,
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=AJ",
-      specialty: "Strength & Conditioning",
-      joinDate: "2021-05-15",
-    },
-    amount: 1200.0,
-    period: "November 2023",
-    dueDate: "2023-11-30",
-    status: "pending",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "TRN-2023-001",
-    sessions: 20,
-    hourlyRate: 60,
-  },
-  {
-    id: 2,
-    trainer: {
-      id: 2,
-      name: "Sarah Martinez",
-      email: "sarah.martinez@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=SM",
-      specialty: "Weight Loss & Nutrition",
-      joinDate: "2022-01-10",
-    },
-    amount: 1375.0,
-    period: "November 2023",
-    dueDate: "2023-11-30",
-    status: "pending",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "TRN-2023-002",
-    sessions: 25,
-    hourlyRate: 55,
-  },
-  {
-    id: 3,
-    trainer: {
-      id: 3,
-      name: "Michael Chen",
-      email: "michael.chen@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=MC",
-      specialty: "Yoga & Mobility",
-      joinDate: "2022-03-22",
-    },
-    amount: 900.0,
-    period: "November 2023",
-    dueDate: "2023-11-30",
-    status: "paid",
-    paymentDate: "2023-11-28",
-    paymentMethod: "Bank Transfer",
-    invoiceId: "TRN-2023-003",
-    sessions: 18,
-    hourlyRate: 50,
-  },
-  {
-    id: 4,
-    trainer: {
-      id: 4,
-      name: "Emily Rodriguez",
-      email: "emily.rodriguez@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=ER",
-      specialty: "HIIT & Functional Training",
-      joinDate: "2022-06-15",
-    },
-    amount: 1080.0,
-    period: "November 2023",
-    dueDate: "2023-11-30",
-    status: "paid",
-    paymentDate: "2023-11-25",
-    paymentMethod: "Bank Transfer",
-    invoiceId: "TRN-2023-004",
-    sessions: 24,
-    hourlyRate: 45,
-  },
-  {
-    id: 5,
-    trainer: {
-      id: 1,
-      name: "Alex Johnson",
-      email: "alex.johnson@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=AJ",
-      specialty: "Strength & Conditioning",
-      joinDate: "2021-05-15",
-    },
-    amount: 1140.0,
-    period: "October 2023",
-    dueDate: "2023-10-31",
-    status: "overdue",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "TRN-2023-005",
-    sessions: 19,
-    hourlyRate: 60,
-  },
-]
+interface Trainer {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  trainerProfile?: {
+    certifications?: string[];
+    experienceYears?: number;
+    bio?: string;
+    specialties?: string[];
+    education?: string;
+    availableHours?: string;
+    socialMediaLinks?: {
+      instagram?: string;
+      twitter?: string;
+      linkedin?: string;
+    };
+  };
+}
+
+interface Payment {
+  id: number;
+  trainer: Trainer;
+  amount: number;
+  period: string;
+  dueDate: string;
+  status: "pending" | "paid" | "overdue";
+  paymentDate: string | null;
+  paymentMethod: string | null;
+  invoiceId: string;
+  sessions: number;
+  hourlyRate: number;
+}
 
 export default function TrainerPaymentPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterOpen, setFilterOpen] = useState(false)
-  const [expandedPayment, setExpandedPayment] = useState<number | null>(null)
+  const [expandedPayment, setExpandedPayment] = useState<string | null>(null)
   const [filters, setFilters] = useState({
     status: "all",
     period: "all",
   })
-  const [payments, setPayments] = useState(trainerPayments)
+  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+
+  // Fetch trainers from the backend
+  useEffect(() => {
+    const fetchTrainers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/users?role=trainer');
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch trainers');
+        }
+        
+        const data = await response.json();
+        setTrainers(data.users);
+        
+        // Generate mock payments based on real trainers
+        const mockPayments = data.users.flatMap((trainer: Trainer, index: number) => {
+          // Create 1-2 payments per trainer
+          const paymentsCount = (index % 2) + 1;
+          return Array(paymentsCount).fill(0).map((_, idx) => ({
+            id: index * 10 + idx + 1,
+            trainer: trainer,
+            amount: 1000 + Math.floor(Math.random() * 500),
+            period: "November 2023",
+            dueDate: "2023-11-30",
+            status: ["pending", "paid", "overdue"][Math.floor(Math.random() * 3)] as "pending" | "paid" | "overdue",
+            paymentDate: idx === 0 ? "2023-11-28" : null,
+            paymentMethod: idx === 0 ? "Bank Transfer" : null,
+            invoiceId: `TRN-2023-${100 + index * 10 + idx}`,
+            sessions: 15 + Math.floor(Math.random() * 15),
+            hourlyRate: 45 + Math.floor(Math.random() * 25),
+          }));
+        });
+        
+        setPayments(mockPayments);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching trainers:", err);
+        setError("Failed to load trainers. Please try again later.");
+        setLoading(false);
+      }
+    };
+    
+    fetchTrainers();
+  }, []);
 
   const toggleFilter = () => {
     setFilterOpen(!filterOpen)
@@ -141,6 +123,38 @@ export default function TrainerPaymentPage() {
   const handleNavigateToPayment = (id: number) => {
     // In a real app, this would navigate to the payment page
     window.location.href = `/admin/trainer-payment/process/${id}`
+  }
+
+  const handleDeleteTrainer = async (trainerId: string) => {
+    // Show confirmation dialog
+    setConfirmDelete(trainerId);
+  }
+
+  const confirmDeleteTrainer = async (trainerId: string) => {
+    try {
+      const response = await fetch(`/api/users/${trainerId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete trainer');
+      }
+      
+      // Remove trainer from state
+      setTrainers(trainers.filter(trainer => trainer._id !== trainerId));
+      
+      // Remove payments associated with this trainer
+      setPayments(payments.filter(payment => payment.trainer._id !== trainerId));
+      
+      setConfirmDelete(null);
+    } catch (err) {
+      console.error("Error deleting trainer:", err);
+      alert("Failed to delete trainer. Please try again.");
+    }
+  }
+
+  const cancelDelete = () => {
+    setConfirmDelete(null);
   }
 
   const getStatusBadge = (status: string) => {
@@ -195,6 +209,33 @@ export default function TrainerPaymentPage() {
   // Get unique periods for filter
   const uniquePeriods = ["all", ...new Set(payments.map((payment) => payment.period))]
 
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2 text-gray-600">Loading trainer data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-2">
+            <AlertCircle className="h-8 w-8 mx-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Error</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -202,6 +243,31 @@ export default function TrainerPaymentPage() {
           <h1 className="text-3xl font-bold text-gray-900">Trainer Payment Management</h1>
           <p className="mt-1 text-gray-600">Process and track payments to trainers</p>
         </div>
+
+        {confirmDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Trainer Removal</h3>
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to remove this trainer? This action cannot be undone and will delete all associated records.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button 
+                  onClick={cancelDelete}
+                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => confirmDeleteTrainer(confirmDelete)}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                >
+                  Delete Trainer
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -255,13 +321,11 @@ export default function TrainerPaymentPage() {
                 placeholder="Search by trainer name, email, or invoice ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                suppressHydrationWarning
               />
             </div>
             <button
               onClick={toggleFilter}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50"
-              suppressHydrationWarning
             >
               <Filter className="h-5 w-5 mr-2" />
               Filter
@@ -281,7 +345,6 @@ export default function TrainerPaymentPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                   value={filters.status}
                   onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                  suppressHydrationWarning
                 >
                   <option value="all">All Statuses</option>
                   <option value="paid">Paid</option>
@@ -298,7 +361,6 @@ export default function TrainerPaymentPage() {
                   className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                   value={filters.period}
                   onChange={(e) => setFilters({ ...filters, period: e.target.value })}
-                  suppressHydrationWarning
                 >
                   {uniquePeriods.map((period) => (
                     <option key={period} value={period}>
@@ -311,7 +373,93 @@ export default function TrainerPaymentPage() {
           )}
         </div>
 
+        {/* Trainers List Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Registered Trainers</h2>
+          
+          <div className="space-y-4">
+            {trainers.length > 0 ? (
+              trainers.map((trainer) => (
+                <div key={trainer._id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="p-4 flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 overflow-hidden">
+                        {trainer.name ? (
+                          <span className="text-xl font-bold">{trainer.name.charAt(0).toUpperCase()}</span>
+                        ) : (
+                          <User className="h-6 w-6" />
+                        )}
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{trainer.name}</div>
+                        <div className="text-sm text-gray-500">{trainer.email}</div>
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => setExpandedPayment(expandedPayment === trainer._id ? null : trainer._id)}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
+                      >
+                        {expandedPayment === trainer._id ? "Hide Details" : "Show Details"}
+                        {expandedPayment === trainer._id ? (
+                          <ChevronUp className="ml-1 h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTrainer(trainer._id)}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-red-600 text-white hover:bg-red-700 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {expandedPayment === trainer._id && (
+                    <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Profile Details</h4>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Experience:</span> {trainer.trainerProfile?.experienceYears || 0} years
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Specialties:</span> {trainer.trainerProfile?.specialties?.join(", ") || "None specified"}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Education:</span> {trainer.trainerProfile?.education || "Not provided"}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-700 mb-2">Additional Information</h4>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Bio:</span> {trainer.trainerProfile?.bio || "Not provided"}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Available Hours:</span> {trainer.trainerProfile?.availableHours || "Not specified"}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Certifications:</span> {trainer.trainerProfile?.certifications?.join(", ") || "None specified"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 bg-gray-50 rounded-lg">
+                <User className="h-10 w-10 mx-auto text-gray-400 mb-2" />
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No trainers found</h3>
+                <p className="text-gray-600">There are no registered trainers in the system.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Payments List */}
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Payment Records</h2>
         {filteredPayments.length > 0 ? (
           <div className="space-y-6">
             {filteredPayments.map((payment) => (
@@ -319,13 +467,12 @@ export default function TrainerPaymentPage() {
                 <div className="p-6">
                   <div className="md:flex">
                     <div className="md:flex-shrink-0">
-                      <div className="h-16 w-16 rounded-full overflow-hidden relative">
-                        <Image
-                          src={payment.trainer.image || "/placeholder.svg"}
-                          alt={payment.trainer.name}
-                          fill
-                          className="object-cover"
-                        />
+                      <div className="h-16 w-16 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center text-gray-400">
+                        {payment.trainer.name ? (
+                          <span className="text-4xl font-bold">{payment.trainer.name.charAt(0).toUpperCase()}</span>
+                        ) : (
+                          <User className="h-8 w-8" />
+                        )}
                       </div>
                     </div>
                     <div className="mt-4 md:mt-0 md:ml-6 flex-1">
@@ -334,7 +481,7 @@ export default function TrainerPaymentPage() {
                           <h3 className="text-xl font-bold text-gray-900">{payment.trainer.name}</h3>
                           <p className="text-gray-600">{payment.trainer.email}</p>
                           <p className="text-sm text-gray-500 mt-1">
-                            {payment.trainer.specialty} • {payment.sessions} sessions
+                            {payment.trainer.trainerProfile?.specialties?.join(", ") || "No specialties"} • {payment.sessions} sessions
                           </p>
                         </div>
                         <div className="mt-2 md:mt-0 flex items-center">
@@ -362,7 +509,6 @@ export default function TrainerPaymentPage() {
                         <button
                           onClick={() => togglePaymentDetails(payment.id)}
                           className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
-                          suppressHydrationWarning
                         >
                           {expandedPayment === payment.id ? "Hide Details" : "View Details"}
                           {expandedPayment === payment.id ? (
@@ -374,7 +520,7 @@ export default function TrainerPaymentPage() {
 
                         <div className="mt-2 md:mt-0 flex space-x-3">
                           <Link
-                            href={`/admin/trainer-payment/${payment.trainer.id}`}
+                            href={`/admin/trainer-payment/${payment.trainer._id}`}
                             className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                           >
                             Trainer History
@@ -385,7 +531,6 @@ export default function TrainerPaymentPage() {
                             <button
                               onClick={() => handleNavigateToPayment(payment.id)}
                               className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm"
-                              suppressHydrationWarning
                             >
                               <DollarSign className="h-4 w-4 mr-1" />
                               Go to Payment
@@ -431,19 +576,22 @@ export default function TrainerPaymentPage() {
                       </div>
 
                       <div>
-                        <h4 className="text-sm font-medium text-gray-500 mb-2">Session Information</h4>
+                        <h4 className="text-sm font-medium text-gray-500 mb-2">Trainer Information</h4>
                         <div className="bg-white p-3 rounded-md border border-gray-200">
                           <p className="text-gray-700 mb-2">
-                            <span className="font-medium">Total Sessions:</span> {payment.sessions}
+                            <span className="font-medium">Name:</span> {payment.trainer.name}
                           </p>
                           <p className="text-gray-700 mb-2">
-                            <span className="font-medium">Hourly Rate:</span> ${payment.hourlyRate.toFixed(2)}
+                            <span className="font-medium">Email:</span> {payment.trainer.email}
                           </p>
                           <p className="text-gray-700 mb-2">
-                            <span className="font-medium">Specialty:</span> {payment.trainer.specialty}
+                            <span className="font-medium">Experience:</span> {payment.trainer.trainerProfile?.experienceYears || 0} years
+                          </p>
+                          <p className="text-gray-700 mb-2">
+                            <span className="font-medium">Bio:</span> {payment.trainer.trainerProfile?.bio || "Not provided"}
                           </p>
                           <p className="text-gray-700">
-                            <span className="font-medium">Invoice ID:</span> {payment.invoiceId}
+                            <span className="font-medium">Education:</span> {payment.trainer.trainerProfile?.education || "Not provided"}
                           </p>
                         </div>
                       </div>
@@ -451,7 +599,7 @@ export default function TrainerPaymentPage() {
 
                     <div className="mt-6 flex justify-end space-x-4">
                       <Link
-                        href={`/admin/trainer-payment/${payment.trainer.id}`}
+                        href={`/admin/trainer-payment/${payment.trainer._id}`}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 text-sm"
                       >
                         View Trainer History
