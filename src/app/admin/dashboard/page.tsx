@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Users,
@@ -14,83 +14,129 @@ import {
   Dumbbell,
 } from "lucide-react"
 
-// Mock data
-const adminStats = {
-  totalUsers: 245,
-  totalTrainers: 12,
-  pendingComplaints: 8,
-  monthlyRevenue: 12580,
-  pendingAssignments: 5,
-  unpaidFees: 15,
+// Interface for user data
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
 }
-
-const recentActivities = [
-  {
-    id: 1,
-    type: "new_user",
-    name: "John Smith",
-    time: "10 minutes ago",
-    details: "New user registered",
-  },
-  {
-    id: 2,
-    type: "payment",
-    name: "Emily Johnson",
-    time: "1 hour ago",
-    details: "Paid monthly membership fee ($49.99)",
-  },
-  {
-    id: 3,
-    type: "complaint",
-    name: "Michael Brown",
-    time: "2 hours ago",
-    details: "Submitted a complaint about equipment",
-  },
-  {
-    id: 4,
-    type: "trainer_assignment",
-    name: "Sarah Davis",
-    time: "3 hours ago",
-    details: "Assigned to trainer Alex Johnson",
-  },
-  {
-    id: 5,
-    type: "trainer_payment",
-    name: "David Wilson (Trainer)",
-    time: "5 hours ago",
-    details: "Received payment for November ($1,200)",
-  },
-]
-
-const pendingComplaints = [
-  {
-    id: 101,
-    user: "Robert Taylor",
-    userType: "Member",
-    date: "2023-11-18",
-    subject: "Locker Room Issue",
-    priority: "high",
-  },
-  {
-    id: 102,
-    user: "Jennifer Lee",
-    userType: "Member",
-    date: "2023-11-17",
-    subject: "Billing Discrepancy",
-    priority: "medium",
-  },
-  {
-    id: 103,
-    user: "Michael Chen",
-    userType: "Trainer",
-    date: "2023-11-15",
-    subject: "Schedule Conflict",
-    priority: "low",
-  },
-]
 
 export default function AdminDashboard() {
   const [period, setPeriod] = useState("month")
+  const [adminStats, setAdminStats] = useState({
+    totalUsers: 0,
+    totalTrainers: 0,
+    pendingComplaints: 8,
+    monthlyRevenue: 12580,
+    pendingAssignments: 5,
+    unpaidFees: 15,
+  })
+  
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/users')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch users')
+        }
+        
+        const data = await response.json()
+        const users = data.users
+        
+        // Count users by role
+        const totalUsers = users.filter((user: User) => user.role === "user").length
+        const totalTrainers = users.filter((user: User) => user.role === "trainer").length
+        
+        // Update stats
+        setAdminStats(prev => ({
+          ...prev,
+          totalUsers,
+          totalTrainers
+        }))
+        
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching users:", err)
+        setError("Failed to load user data")
+        setLoading(false)
+      }
+    }
+    
+    fetchUsers()
+  }, [])
+
+  // Mock data for other sections that haven't been implemented with real data yet
+  const recentActivities = [
+    {
+      id: 1,
+      type: "new_user",
+      name: "John Smith",
+      time: "10 minutes ago",
+      details: "New user registered",
+    },
+    {
+      id: 2,
+      type: "payment",
+      name: "Emily Johnson",
+      time: "1 hour ago",
+      details: "Paid monthly membership fee ($49.99)",
+    },
+    {
+      id: 3,
+      type: "complaint",
+      name: "Michael Brown",
+      time: "2 hours ago",
+      details: "Submitted a complaint about equipment",
+    },
+    {
+      id: 4,
+      type: "trainer_assignment",
+      name: "Sarah Davis",
+      time: "3 hours ago",
+      details: "Assigned to trainer Alex Johnson",
+    },
+    {
+      id: 5,
+      type: "trainer_payment",
+      name: "David Wilson (Trainer)",
+      time: "5 hours ago",
+      details: "Received payment for November ($1,200)",
+    },
+  ]
+
+  const pendingComplaints = [
+    {
+      id: 101,
+      user: "Robert Taylor",
+      userType: "Member",
+      date: "2023-11-18",
+      subject: "Locker Room Issue",
+      priority: "high",
+    },
+    {
+      id: 102,
+      user: "Jennifer Lee",
+      userType: "Member",
+      date: "2023-11-17",
+      subject: "Billing Discrepancy",
+      priority: "medium",
+    },
+    {
+      id: 103,
+      user: "Michael Chen",
+      userType: "Trainer",
+      date: "2023-11-15",
+      subject: "Schedule Conflict",
+      priority: "low",
+    },
+  ]
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
@@ -116,6 +162,35 @@ export default function AdminDashboard() {
           </span>
         )
     }
+  }
+
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2 text-gray-600">Loading dashboard data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-2">
+            <AlertCircle className="h-8 w-8 mx-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to load data</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    )
   }
 
   return (

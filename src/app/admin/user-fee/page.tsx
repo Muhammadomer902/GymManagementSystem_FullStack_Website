@@ -17,94 +17,26 @@ import {
   DollarSign,
 } from "lucide-react"
 
-// Mock data for user fees
-const userFees = [
-  {
-    id: 1,
-    user: {
-      id: 101,
-      name: "John Smith",
-      email: "john.smith@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=JS",
-      membershipType: "Premium",
-      joinDate: "2023-09-15",
-    },
-    amount: 49.99,
-    dueDate: "2023-11-15",
-    status: "paid",
-    paymentDate: "2023-11-10",
-    paymentMethod: "Credit Card",
-    invoiceId: "INV-2023-001",
-  },
-  {
-    id: 2,
-    user: {
-      id: 102,
-      name: "Emily Johnson",
-      email: "emily.johnson@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=EJ",
-      membershipType: "Basic",
-      joinDate: "2023-10-05",
-    },
-    amount: 29.99,
-    dueDate: "2023-11-20",
-    status: "pending",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "INV-2023-002",
-  },
-  {
-    id: 3,
-    user: {
-      id: 103,
-      name: "Michael Brown",
-      email: "michael.brown@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=MB",
-      membershipType: "Elite",
-      joinDate: "2023-08-20",
-    },
-    amount: 89.99,
-    dueDate: "2023-11-10",
-    status: "overdue",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "INV-2023-003",
-  },
-  {
-    id: 4,
-    user: {
-      id: 104,
-      name: "Sarah Davis",
-      email: "sarah.davis@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=SD",
-      membershipType: "Premium",
-      joinDate: "2023-11-01",
-    },
-    amount: 49.99,
-    dueDate: "2023-12-01",
-    status: "pending",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "INV-2023-004",
-  },
-  {
-    id: 5,
-    user: {
-      id: 105,
-      name: "David Wilson",
-      email: "david.wilson@example.com",
-      image: "/placeholder.svg?height=200&width=200&text=DW",
-      membershipType: "Basic",
-      joinDate: "2023-07-15",
-    },
-    amount: 29.99,
-    dueDate: "2023-11-05",
-    status: "overdue",
-    paymentDate: null,
-    paymentMethod: null,
-    invoiceId: "INV-2023-005",
-  },
-]
+// User interface based on our MongoDB model
+interface IUser {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+// Mock fee data structure that will be associated with real users
+interface UserFee {
+  id: number;
+  user: IUser;
+  amount: number;
+  dueDate: string;
+  status: "paid" | "pending" | "overdue";
+  paymentDate: string | null;
+  paymentMethod: string | null;
+  invoiceId: string;
+}
 
 export default function UserFeePage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -114,11 +46,73 @@ export default function UserFeePage() {
     status: "all",
     membershipType: "all",
   })
-  const [fees, setFees] = useState(userFees)
+  const [fees, setFees] = useState<UserFee[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true)
+        // Fetch only users with the role "user"
+        const response = await fetch('/api/users?role=user')
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch users')
+        }
+        
+        const data = await response.json()
+        const users = data.users
+        
+        // Generate mock fee data for each user
+        // In a real app, this would come from a fees collection in the database
+        const userFees: UserFee[] = users.map((user: IUser, index: number) => {
+          // Generate random status, date and amount for demonstration
+          const statuses = ["paid", "pending", "overdue"] as const
+          const status = statuses[Math.floor(Math.random() * statuses.length)]
+          
+          // Due date between today and 30 days from now
+          const today = new Date()
+          const dueDate = new Date(today)
+          dueDate.setDate(today.getDate() + Math.floor(Math.random() * 30))
+          
+          // Amount based on random membership type
+          const membershipTypes = ["Basic", "Premium", "Elite"]
+          const membershipType = membershipTypes[Math.floor(Math.random() * membershipTypes.length)]
+          const amount = membershipType === "Basic" ? 29.99 : membershipType === "Premium" ? 49.99 : 89.99
+          
+          // Add membership type to user object
+          const userWithMembership = {
+            ...user,
+            membershipType,
+            joinDate: new Date(user.createdAt).toISOString().split('T')[0]
+          }
+          
+          return {
+            id: index + 1,
+            user: userWithMembership,
+            amount,
+            dueDate: dueDate.toISOString().split('T')[0],
+            status: status,
+            paymentDate: status === "paid" ? today.toISOString().split('T')[0] : null,
+            paymentMethod: status === "paid" ? "Credit Card" : null,
+            invoiceId: `INV-2023-${(index + 1).toString().padStart(3, '0')}`,
+          }
+        })
+        
+        setFees(userFees)
+        setLoading(false)
+      } catch (err) {
+        console.error("Error fetching users:", err)
+        setError("Failed to load user data")
+        setLoading(false)
+      }
+    }
+    
+    fetchUsers()
+    
     const statusParam = searchParams.get("status")
     if (statusParam) {
       setFilters((prev) => ({ ...prev, status: statusParam }))
@@ -196,6 +190,35 @@ export default function UserFeePage() {
   const totalPaid = filteredFees.filter((fee) => fee.status === "paid").reduce((sum, fee) => sum + fee.amount, 0)
   const totalPending = filteredFees.filter((fee) => fee.status === "pending").reduce((sum, fee) => sum + fee.amount, 0)
   const totalOverdue = filteredFees.filter((fee) => fee.status === "overdue").reduce((sum, fee) => sum + fee.amount, 0)
+
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-2 text-gray-600">Loading user fee data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-2">
+            <AlertCircle className="h-8 w-8 mx-auto" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Failed to load data</h2>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen py-8">
