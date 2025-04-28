@@ -12,131 +12,71 @@ import {
   UserPlus,
   CreditCard,
   Dumbbell,
+  Loader,
 } from "lucide-react"
 
-// Interface for user data
-interface User {
-  _id: string;
+// Interfaces for dashboard data
+interface DashboardStats {
+  totalUsers: number;
+  totalTrainers: number;
+  pendingComplaints: number;
+  monthlyRevenue: number;
+  pendingAssignments: number;
+  unpaidFees: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
   name: string;
-  email: string;
-  role: string;
-  createdAt: string;
+  time: string;
+  details: string;
+}
+
+interface ComplaintItem {
+  id: string;
+  user: string;
+  userType: string;
+  date: string;
+  subject: string;
+  priority: "high" | "medium" | "low";
+}
+
+interface DashboardData {
+  stats: DashboardStats;
+  recentActivity: ActivityItem[];
+  pendingComplaints: ComplaintItem[];
 }
 
 export default function AdminDashboard() {
   const [period, setPeriod] = useState("month")
-  const [adminStats, setAdminStats] = useState({
-    totalUsers: 0,
-    totalTrainers: 0,
-    pendingComplaints: 8,
-    monthlyRevenue: 12580,
-    pendingAssignments: 5,
-    unpaidFees: 15,
-  })
-  
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
+  // Fetch dashboard data from API
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true)
-        const response = await fetch('/api/users')
+        const response = await fetch(`/api/admin/dashboard?period=${period}`)
         
         if (!response.ok) {
-          throw new Error('Failed to fetch users')
+          throw new Error('Failed to fetch dashboard data')
         }
         
         const data = await response.json()
-        const users = data.users
-        
-        // Count users by role
-        const totalUsers = users.filter((user: User) => user.role === "user").length
-        const totalTrainers = users.filter((user: User) => user.role === "trainer").length
-        
-        // Update stats
-        setAdminStats(prev => ({
-          ...prev,
-          totalUsers,
-          totalTrainers
-        }))
-        
+        setDashboardData(data)
         setLoading(false)
       } catch (err) {
-        console.error("Error fetching users:", err)
-        setError("Failed to load user data")
+        console.error("Error fetching dashboard data:", err)
+        setError("Failed to load dashboard data")
         setLoading(false)
       }
     }
     
-    fetchUsers()
-  }, [])
-
-  // Mock data for other sections that haven't been implemented with real data yet
-  const recentActivities = [
-    {
-      id: 1,
-      type: "new_user",
-      name: "John Smith",
-      time: "10 minutes ago",
-      details: "New user registered",
-    },
-    {
-      id: 2,
-      type: "payment",
-      name: "Emily Johnson",
-      time: "1 hour ago",
-      details: "Paid monthly membership fee ($49.99)",
-    },
-    {
-      id: 3,
-      type: "complaint",
-      name: "Michael Brown",
-      time: "2 hours ago",
-      details: "Submitted a complaint about equipment",
-    },
-    {
-      id: 4,
-      type: "trainer_assignment",
-      name: "Sarah Davis",
-      time: "3 hours ago",
-      details: "Assigned to trainer Alex Johnson",
-    },
-    {
-      id: 5,
-      type: "trainer_payment",
-      name: "David Wilson (Trainer)",
-      time: "5 hours ago",
-      details: "Received payment for November ($1,200)",
-    },
-  ]
-
-  const pendingComplaints = [
-    {
-      id: 101,
-      user: "Robert Taylor",
-      userType: "Member",
-      date: "2023-11-18",
-      subject: "Locker Room Issue",
-      priority: "high",
-    },
-    {
-      id: 102,
-      user: "Jennifer Lee",
-      userType: "Member",
-      date: "2023-11-17",
-      subject: "Billing Discrepancy",
-      priority: "medium",
-    },
-    {
-      id: 103,
-      user: "Michael Chen",
-      userType: "Trainer",
-      date: "2023-11-15",
-      subject: "Schedule Conflict",
-      priority: "low",
-    },
-  ]
+    fetchDashboardData()
+  }, [period])
 
   const getPriorityBadge = (priority: string) => {
     switch (priority) {
@@ -167,11 +107,9 @@ export default function AdminDashboard() {
   // Display loading state
   if (loading) {
     return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="bg-gray-100 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+          <Loader className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="mt-2 text-gray-600">Loading dashboard data...</p>
         </div>
       </div>
@@ -181,7 +119,7 @@ export default function AdminDashboard() {
   // Display error state
   if (error) {
     return (
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+      <div className="bg-gray-100 min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-2">
             <AlertCircle className="h-8 w-8 mx-auto" />
@@ -193,8 +131,21 @@ export default function AdminDashboard() {
     )
   }
 
+  // Safe access to data with fallbacks
+  const stats = dashboardData?.stats || {
+    totalUsers: 0,
+    totalTrainers: 0,
+    pendingComplaints: 0,
+    monthlyRevenue: 0,
+    pendingAssignments: 0,
+    unpaidFees: 0
+  };
+  
+  const recentActivity = dashboardData?.recentActivity || [];
+  const pendingComplaints = dashboardData?.pendingComplaints || [];
+
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-100 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
@@ -210,7 +161,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Total Members</h2>
-                <p className="text-2xl font-bold text-gray-900">{adminStats.totalUsers}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -231,7 +182,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Total Trainers</h2>
-                <p className="text-2xl font-bold text-gray-900">{adminStats.totalTrainers}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalTrainers}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -252,7 +203,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Monthly Revenue</h2>
-                <p className="text-2xl font-bold text-gray-900">${adminStats.monthlyRevenue.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">${stats.monthlyRevenue.toLocaleString()}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -270,7 +221,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Pending Complaints</h2>
-                <p className="text-2xl font-bold text-gray-900">{adminStats.pendingComplaints}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingComplaints}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -291,7 +242,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Pending Trainer Assignments</h2>
-                <p className="text-2xl font-bold text-gray-900">{adminStats.pendingAssignments}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingAssignments}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -312,7 +263,7 @@ export default function AdminDashboard() {
               </div>
               <div className="ml-4">
                 <h2 className="text-sm font-medium text-gray-500">Unpaid User Fees</h2>
-                <p className="text-2xl font-bold text-gray-900">{adminStats.unpaidFees}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.unpaidFees}</p>
               </div>
             </div>
             <div className="mt-4">
@@ -341,7 +292,6 @@ export default function AdminDashboard() {
                         period === "day" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("day")}
-                      suppressHydrationWarning
                     >
                       Today
                     </button>
@@ -350,7 +300,6 @@ export default function AdminDashboard() {
                         period === "week" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("week")}
-                      suppressHydrationWarning
                     >
                       This Week
                     </button>
@@ -359,7 +308,6 @@ export default function AdminDashboard() {
                         period === "month" ? "bg-blue-100 text-blue-700" : "text-gray-600 hover:bg-gray-100"
                       }`}
                       onClick={() => setPeriod("month")}
-                      suppressHydrationWarning
                     >
                       This Month
                     </button>
@@ -369,44 +317,50 @@ export default function AdminDashboard() {
 
               <div className="p-6">
                 <div className="space-y-6">
-                  {recentActivities.map((activity) => (
-                    <div key={activity.id} className="flex">
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`h-10 w-10 rounded-full flex items-center justify-center ${
-                            activity.type === "new_user"
-                              ? "bg-blue-100 text-blue-600"
-                              : activity.type === "payment"
-                                ? "bg-green-100 text-green-600"
-                                : activity.type === "complaint"
-                                  ? "bg-red-100 text-red-600"
-                                  : activity.type === "trainer_assignment"
-                                    ? "bg-purple-100 text-purple-600"
-                                    : "bg-yellow-100 text-yellow-600"
-                          }`}
-                        >
-                          {activity.type === "new_user" ? (
-                            <UserPlus className="h-5 w-5" />
-                          ) : activity.type === "payment" ? (
-                            <DollarSign className="h-5 w-5" />
-                          ) : activity.type === "complaint" ? (
-                            <MessageSquare className="h-5 w-5" />
-                          ) : activity.type === "trainer_assignment" ? (
-                            <Users className="h-5 w-5" />
-                          ) : (
-                            <CreditCard className="h-5 w-5" />
-                          )}
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((activity) => (
+                      <div key={activity.id} className="flex">
+                        <div className="flex-shrink-0">
+                          <div
+                            className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                              activity.type === "new_user"
+                                ? "bg-blue-100 text-blue-600"
+                                : activity.type === "payment"
+                                  ? "bg-green-100 text-green-600"
+                                  : activity.type === "complaint"
+                                    ? "bg-red-100 text-red-600"
+                                    : activity.type === "trainer_assignment"
+                                      ? "bg-purple-100 text-purple-600"
+                                      : "bg-yellow-100 text-yellow-600"
+                            }`}
+                          >
+                            {activity.type === "new_user" ? (
+                              <UserPlus className="h-5 w-5" />
+                            ) : activity.type === "payment" ? (
+                              <DollarSign className="h-5 w-5" />
+                            ) : activity.type === "complaint" ? (
+                              <MessageSquare className="h-5 w-5" />
+                            ) : activity.type === "trainer_assignment" ? (
+                              <Users className="h-5 w-5" />
+                            ) : (
+                              <CreditCard className="h-5 w-5" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <div className="flex justify-between">
+                            <p className="text-sm font-medium text-gray-900">{activity.name}</p>
+                            <p className="text-sm text-gray-500">{activity.time}</p>
+                          </div>
+                          <p className="text-sm text-gray-600 mt-1">{activity.details}</p>
                         </div>
                       </div>
-                      <div className="ml-4 flex-1">
-                        <div className="flex justify-between">
-                          <p className="text-sm font-medium text-gray-900">{activity.name}</p>
-                          <p className="text-sm text-gray-500">{activity.time}</p>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1">{activity.details}</p>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500">No recent activity found</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
@@ -420,29 +374,35 @@ export default function AdminDashboard() {
               </div>
               <div className="p-6">
                 <div className="space-y-4">
-                  {pendingComplaints.map((complaint) => (
-                    <div key={complaint.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">{complaint.subject}</h3>
-                          <p className="text-xs text-gray-500 mt-1">
-                            From: {complaint.user} ({complaint.userType})
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">Submitted: {complaint.date}</p>
+                  {pendingComplaints.length > 0 ? (
+                    pendingComplaints.map((complaint) => (
+                      <div key={complaint.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">{complaint.subject}</h3>
+                            <p className="text-xs text-gray-500 mt-1">
+                              From: {complaint.user} ({complaint.userType})
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">Submitted: {complaint.date}</p>
+                          </div>
+                          <div>{getPriorityBadge(complaint.priority)}</div>
                         </div>
-                        <div>{getPriorityBadge(complaint.priority)}</div>
+                        <div className="mt-3 flex justify-end">
+                          <Link
+                            href={`/admin/complaint-handling/${complaint.id}`}
+                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                          >
+                            View Details
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          </Link>
+                        </div>
                       </div>
-                      <div className="mt-3 flex justify-end">
-                        <Link
-                          href={`/admin/complaint-handling/${complaint.id}`}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                        >
-                          View Details
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Link>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-gray-500">No pending complaints</p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 <div className="mt-4 text-center">
                   <Link

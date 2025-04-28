@@ -4,117 +4,66 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import Image from "next/image"
 import Link from "next/link"
-import { Calendar, Clock, Dumbbell, Star, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown } from "lucide-react"
+import { Calendar, Clock, Dumbbell, Star, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Loader } from "lucide-react"
 
-// Mock data for trainers
-const trainers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    specialty: "Strength & Conditioning",
-    image: "/placeholder.svg?height=400&width=400&text=Alex",
-    plans: [
-      {
-        id: 101,
-        name: "Strength Builder",
-        description: "A comprehensive program designed to build strength and muscle mass through progressive overload.",
-        duration: "8 weeks",
-        sessionsPerWeek: 4,
-        level: "Intermediate",
-        price: "$480 ($60/session)",
-        category: "Strength",
-        image: "/placeholder.svg?height=300&width=500&text=Strength+Builder",
-      },
-      {
-        id: 102,
-        name: "Athletic Performance",
-        description:
-          "Enhance your athletic abilities with this sport-specific training program focusing on power, agility, and speed.",
-        duration: "12 weeks",
-        sessionsPerWeek: 3,
-        level: "Advanced",
-        price: "$720 ($60/session)",
-        category: "Performance",
-        image: "/placeholder.svg?height=300&width=500&text=Athletic+Performance",
-      },
-    ],
-    reviews: [
-      {
-        id: 1001,
-        user: "John D.",
-        rating: 5,
-        date: "2023-10-15",
-        comment:
-          "Alex is an amazing trainer! I've gained 10 pounds of muscle and lost 15 pounds of fat in just 3 months.",
-      },
-      {
-        id: 1002,
-        user: "Sarah M.",
-        rating: 4,
-        date: "2023-09-22",
-        comment:
-          "Great knowledge and very motivating. The only reason I'm not giving 5 stars is because sometimes sessions run a bit late.",
-      },
-    ],
-  },
-  {
-    id: 2,
-    name: "Sarah Martinez",
-    specialty: "Weight Loss & Nutrition",
-    image: "/placeholder.svg?height=400&width=400&text=Sarah",
-    plans: [
-      {
-        id: 201,
-        name: "Weight Loss Kickstart",
-        description:
-          "Jump-start your weight loss journey with this comprehensive program combining effective workouts and nutrition guidance.",
-        duration: "6 weeks",
-        sessionsPerWeek: 3,
-        level: "Beginner to Intermediate",
-        price: "$330 ($55/session)",
-        category: "Weight Loss",
-        image: "/placeholder.svg?height=300&width=500&text=Weight+Loss+Kickstart",
-      },
-      {
-        id: 202,
-        name: "Nutrition Makeover",
-        description: "Transform your relationship with food through personalized nutrition coaching and meal planning.",
-        duration: "4 weeks",
-        sessionsPerWeek: 1,
-        level: "All Levels",
-        price: "$220 ($55/session)",
-        category: "Nutrition",
-        image: "/placeholder.svg?height=300&width=500&text=Nutrition+Makeover",
-      },
-    ],
-    reviews: [
-      {
-        id: 2001,
-        user: "Michael T.",
-        rating: 5,
-        date: "2023-11-05",
-        comment: "Sarah's nutrition advice changed my life! I've lost 25 pounds and feel better than ever.",
-      },
-      {
-        id: 2002,
-        user: "Emily R.",
-        rating: 5,
-        date: "2023-10-18",
-        comment:
-          "The Weight Loss Kickstart program was exactly what I needed. Sarah is knowledgeable, supportive, and keeps you accountable.",
-      },
-    ],
-  },
-]
+// Define interfaces for our data
+interface TrainerPlan {
+  id: number;
+  name: string;
+  description: string;
+  duration: string;
+  sessionsPerWeek: number;
+  level: string;
+  price: string;
+  category: string;
+  image: string;
+}
+
+interface TrainerReview {
+  id: number;
+  user: string;
+  rating: number;
+  date: string;
+  comment: string;
+}
+
+interface ApiTrainer {
+  id: string;
+  name: string;
+  email: string;
+  specialty: string;
+  experience: string;
+  bio: string;
+  certifications: string[];
+  education: string;
+  availableHours: string;
+  image: string;
+}
+
+interface Trainer {
+  id: string;
+  name: string;
+  specialty: string;
+  image: string;
+  plans: TrainerPlan[];
+  reviews: TrainerReview[];
+  experience?: string;
+  bio?: string;
+  certifications?: string[];
+  education?: string;
+  planCount: number;
+}
 
 export default function TrainerPlanPage() {
   const searchParams = useSearchParams()
-  const trainerId = searchParams.get("trainerId")
+  const trainerId = searchParams?.get("trainerId") || null
   const router = useRouter()
 
-  const [selectedTrainer, setSelectedTrainer] = useState<any>(null)
+  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedTrainer, setSelectedTrainer] = useState<Trainer | null>(null)
   const [expandedPlan, setExpandedPlan] = useState<number | null>(null)
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [reviewFormData, setReviewFormData] = useState({
@@ -131,6 +80,199 @@ export default function TrainerPlanPage() {
     preferredDays: [],
     preferredTime: "",
   })
+
+  // Function to get initials from name
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  // Generate a consistent color based on the trainer name
+  const getBackgroundColor = (name: string) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
+      'bg-red-500', 'bg-yellow-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-teal-500'
+    ];
+    
+    // Simple hash function to pick a color
+    const hash = name.split('').reduce(
+      (acc, char) => acc + char.charCodeAt(0), 0
+    );
+    
+    return colors[hash % colors.length];
+  };
+
+  // Make the specialty colors more visible by using stronger color values
+  const getCardBackgroundColor = (specialty: string) => {
+    // Extract the first specialty if there are multiple
+    const mainSpecialty = specialty.split(',')[0].trim().toLowerCase();
+    
+    // Map of specialties to background colors - using stronger colors
+    const specialtyColors: Record<string, string> = {
+      'strength': 'bg-blue-100',
+      'weight loss': 'bg-green-100',
+      'cardio': 'bg-orange-100',
+      'yoga': 'bg-purple-100',
+      'nutrition': 'bg-yellow-100',
+      'hiit': 'bg-red-100',
+      'crossfit': 'bg-indigo-100',
+      'pilates': 'bg-pink-100',
+      'bodybuilding': 'bg-cyan-100',
+      'functional': 'bg-teal-100',
+      'rehabilitation': 'bg-amber-100',
+      'flexibility': 'bg-lime-100',
+      'general': 'bg-slate-100',
+      'personal': 'bg-sky-100'
+    };
+    
+    // Find a matching specialty or use a default
+    for (const [key, value] of Object.entries(specialtyColors)) {
+      if (mainSpecialty.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Default background if no match
+    return 'bg-slate-100';
+  };
+
+  // Fetch trainers from the API
+  useEffect(() => {
+    const fetchTrainersWithWorkoutPlans = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch trainers from the API
+        const trainersResponse = await fetch('/api/trainers')
+        if (!trainersResponse.ok) {
+          throw new Error('Failed to fetch trainers')
+        }
+        
+        const trainersData = await trainersResponse.json()
+        
+        // Fetch workout plans for each trainer
+        const trainersWithPlanCounts = await Promise.all(
+          trainersData.trainers.map(async (trainer: ApiTrainer) => {
+            try {
+              // Get workout plans for this trainer
+              const plansResponse = await fetch(`/api/workout-plans?trainerId=${trainer.id}`)
+              
+              if (!plansResponse.ok) {
+                console.error(`Failed to fetch plans for trainer ${trainer.id}`)
+                return {
+                  ...trainer,
+                  planCount: 0
+                }
+              }
+              
+              const plans = await plansResponse.json()
+              // Get actual count of plans from the API response
+              const planCount = Array.isArray(plans) ? plans.length : 0
+              
+              return {
+                ...trainer,
+                planCount
+              }
+            } catch (error) {
+              console.error(`Error fetching plans for trainer ${trainer.id}:`, error)
+              return {
+                ...trainer,
+                planCount: 0
+              }
+            }
+          })
+        )
+        
+        // Transform the API data to match our component's expected format
+        const transformedTrainers = trainersWithPlanCounts.map((trainer: ApiTrainer & { planCount: number }) => {
+          // Generate some mock plans and reviews for each trainer
+          // In a real app, these would come from the API too
+          const plans = [
+            {
+              id: Math.floor(Math.random() * 1000) + 100,
+              name: `${trainer.specialty?.split(',')[0] || 'Fitness'} Program`,
+              description: `A comprehensive program designed by ${trainer.name} focusing on ${trainer.specialty || 'general fitness'}.`,
+              duration: `${Math.floor(Math.random() * 8) + 4} weeks`,
+              sessionsPerWeek: Math.floor(Math.random() * 3) + 2,
+              level: ["Beginner", "Intermediate", "Advanced"][Math.floor(Math.random() * 3)],
+              price: `$${(Math.floor(Math.random() * 20) + 40) * 10} ($${Math.floor(Math.random() * 20) + 40}/session)`,
+              category: trainer.specialty?.split(',')[0] || 'General',
+              image: "/placeholder.svg?height=300&width=500&text=Fitness+Program",
+            },
+            {
+              id: Math.floor(Math.random() * 1000) + 200,
+              name: `${trainer.specialty?.split(',')[1] || 'Customized'} Training`,
+              description: `Personalized training sessions with ${trainer.name} tailored to your specific goals and needs.`,
+              duration: `${Math.floor(Math.random() * 12) + 4} weeks`,
+              sessionsPerWeek: Math.floor(Math.random() * 2) + 1,
+              level: "All Levels",
+              price: `$${(Math.floor(Math.random() * 30) + 30) * 10} ($${Math.floor(Math.random() * 30) + 30}/session)`,
+              category: trainer.specialty?.split(',')[1] || 'Personalized',
+              image: "/placeholder.svg?height=300&width=500&text=Custom+Training",
+            },
+          ];
+          
+          // Generate mock reviews
+          const reviews = [
+            {
+              id: Math.floor(Math.random() * 1000) + 1000,
+              user: ["John D.", "Sarah M.", "Michael L.", "Emma W.", "Robert K."][Math.floor(Math.random() * 5)],
+              rating: Math.floor(Math.random() * 2) + 4, // 4 or 5 star ratings
+              date: new Date(Date.now() - Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              comment: `${trainer.name} is an excellent trainer! The ${plans[0].name} program was exactly what I needed.`,
+            },
+            {
+              id: Math.floor(Math.random() * 1000) + 2000,
+              user: ["Alex P.", "Jessica T.", "David H.", "Lisa N.", "Chris B."][Math.floor(Math.random() * 5)],
+              rating: Math.floor(Math.random() * 2) + 4, // 4 or 5 star ratings
+              date: new Date(Date.now() - Math.floor(Math.random() * 60) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              comment: `Great experience working with ${trainer.name}. Very knowledgeable and motivating.`,
+            },
+          ];
+          
+          return {
+            id: trainer.id,
+            name: trainer.name,
+            specialty: trainer.specialty || "General Fitness",
+            image: trainer.image || `/placeholder.svg?height=400&width=400&text=${trainer.name.split(' ')[0]}`,
+            experience: trainer.experience || `${Math.floor(Math.random() * 10) + 1} years`,
+            bio: trainer.bio || `Professional fitness trainer specializing in ${trainer.specialty || 'various training methods'}.`,
+            certifications: trainer.certifications || ["Certified Personal Trainer", "Nutrition Specialist"],
+            education: trainer.education || "Bachelor's in Kinesiology",
+            plans,
+            reviews,
+            planCount: trainer.planCount
+          };
+        });
+        
+        setTrainers(transformedTrainers)
+        console.log("Fetched trainers with plan counts:", transformedTrainers)
+        
+        // If trainerId is provided in the URL, select that trainer
+        if (trainerId) {
+          const trainer = transformedTrainers.find((t: Trainer) => t.id === trainerId);
+          if (trainer) {
+            setSelectedTrainer(trainer);
+          } else {
+            // Redirect to the trainers list if the trainer isn't found
+            router.push('/user/trainer-plan');
+          }
+        }
+        
+      } catch (error) {
+        console.error("Error fetching trainers:", error)
+        setError("Failed to load trainers. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchTrainersWithWorkoutPlans()
+  }, [trainerId, router])
 
   useEffect(() => {
     if (trainerId) {
@@ -190,23 +332,53 @@ export default function TrainerPlanPage() {
     setShowRequestForm(false)
   }
 
+  // Display loading state
+  if (loading) {
+    return (
+      <div className="bg-gray-100 min-h-screen py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <Loader className="h-12 w-12 text-blue-600 animate-spin mx-auto mb-4" />
+            <h2 className="text-xl font-medium text-gray-900">Loading trainers...</h2>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Display error state
+  if (error) {
+    return (
+      <div className="bg-gray-100 min-h-screen py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <h2 className="text-xl font-medium text-red-600 mb-2">Error Loading Trainers</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="bg-gray-50 min-h-screen py-8">
+    <div className="bg-gray-100 min-h-screen py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {selectedTrainer ? (
           <>
             {/* Trainer Info */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+            <div className={`${getCardBackgroundColor(selectedTrainer.specialty)} rounded-lg shadow-sm overflow-hidden mb-8`}>
               <div className="p-6">
                 <div className="md:flex">
                   <div className="md:flex-shrink-0">
-                    <div className="h-48 w-48 rounded-lg overflow-hidden relative">
-                      <Image
-                        src={selectedTrainer.image || "/placeholder.svg"}
-                        alt={selectedTrainer.name}
-                        fill
-                        className="object-cover"
-                      />
+                    <div className="h-48 w-48 rounded-lg overflow-hidden relative flex items-center justify-center text-white text-4xl font-bold"
+                         style={{ backgroundColor: getBackgroundColor(selectedTrainer.name) }}>
+                      {getInitials(selectedTrainer.name)}
                     </div>
                   </div>
                   <div className="mt-4 md:mt-0 md:ml-6 flex-1">
@@ -218,7 +390,7 @@ export default function TrainerPlanPage() {
                       <div className="flex items-center mt-1 md:mt-0">
                         <Star className="h-5 w-5 text-yellow-500 fill-current" />
                         <span className="ml-1 text-gray-900 font-medium">
-                          {selectedTrainer.reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
+                          {selectedTrainer.reviews.reduce((acc: number, review: TrainerReview) => acc + review.rating, 0) /
                             selectedTrainer.reviews.length}
                         </span>
                         <span className="ml-1 text-gray-500">({selectedTrainer.reviews.length} reviews)</span>
@@ -388,18 +560,15 @@ export default function TrainerPlanPage() {
 
               {selectedTrainer.plans.length > 0 ? (
                 <div className="space-y-6">
-                  {selectedTrainer.plans.map((plan: any) => (
-                    <div key={plan.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  {selectedTrainer.plans.map((plan: TrainerPlan) => (
+                    <div key={plan.id} className={`${getCardBackgroundColor(plan.category)} rounded-lg shadow-sm overflow-hidden`}>
                       <div className="p-6">
                         <div className="md:flex">
                           <div className="md:flex-shrink-0">
-                            <div className="h-48 w-full md:w-64 rounded-lg overflow-hidden relative">
-                              <Image
-                                src={plan.image || "/placeholder.svg"}
-                                alt={plan.name}
-                                fill
-                                className="object-cover"
-                              />
+                            <div className="h-48 w-full md:w-64 rounded-lg overflow-hidden relative bg-blue-100">
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Dumbbell className="h-16 w-16 text-blue-500" />
+                              </div>
                             </div>
                           </div>
                           <div className="mt-4 md:mt-0 md:ml-6 flex-1">
@@ -451,7 +620,7 @@ export default function TrainerPlanPage() {
 
                       {/* Expanded Plan Details */}
                       {expandedPlan === plan.id && (
-                        <div className="border-t border-gray-200 px-6 py-4">
+                        <div className="border-t border-gray-200 px-6 py-4 bg-white">
                           <h4 className="text-lg font-medium text-gray-900 mb-4">Plan Details</h4>
                           <p className="text-gray-700 mb-4">
                             This is where detailed information about the plan would be displayed, including:
@@ -473,11 +642,11 @@ export default function TrainerPlanPage() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <div className="bg-gray-100 rounded-lg shadow-sm p-8 text-center">
                   <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No training plans available</h3>
                   <p className="text-gray-600 mb-6">
-                    This trainer hasn't published any training plans yet. You can still request custom training.
+                    This trainer hasn&apos;t published any training plans yet. You can still request custom training.
                   </p>
                   <button
                     onClick={() => setShowRequestForm(true)}
@@ -495,8 +664,8 @@ export default function TrainerPlanPage() {
 
               {selectedTrainer.reviews.length > 0 ? (
                 <div className="space-y-6">
-                  {selectedTrainer.reviews.map((review: any) => (
-                    <div key={review.id} className="bg-white rounded-lg shadow-sm p-6">
+                  {selectedTrainer.reviews.map((review: TrainerReview) => (
+                    <div key={review.id} className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-400">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
                           <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -533,11 +702,11 @@ export default function TrainerPlanPage() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+                <div className="bg-gray-100 rounded-lg shadow-sm p-8 text-center">
                   <Star className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No reviews yet</h3>
                   <p className="text-gray-600 mb-6">
-                    Be the first to review {selectedTrainer.name}'s training services.
+                    Be the first to review {selectedTrainer.name}&apos;s training services.
                   </p>
                   <button
                     onClick={() => setShowReviewForm(true)}
@@ -556,17 +725,13 @@ export default function TrainerPlanPage() {
             {trainers.length > 0 ? (
               <div className="space-y-8">
                 {trainers.map((trainer) => (
-                  <div key={trainer.id} className="bg-white rounded-lg shadow-sm overflow-hidden">
+                  <div key={trainer.id} className={`${getCardBackgroundColor(trainer.specialty)} rounded-lg shadow-sm overflow-hidden`}>
                     <div className="p-6">
                       <div className="md:flex">
                         <div className="md:flex-shrink-0">
-                          <div className="h-32 w-32 rounded-lg overflow-hidden relative">
-                            <Image
-                              src={trainer.image || "/placeholder.svg"}
-                              alt={trainer.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="h-32 w-32 rounded-lg overflow-hidden relative flex items-center justify-center text-white text-2xl font-bold"
+                               style={{ backgroundColor: getBackgroundColor(trainer.name) }}>
+                            {getInitials(trainer.name)}
                           </div>
                         </div>
                         <div className="mt-4 md:mt-0 md:ml-6 flex-1">
@@ -578,7 +743,7 @@ export default function TrainerPlanPage() {
                             <div className="flex items-center mt-1 md:mt-0">
                               <Star className="h-5 w-5 text-yellow-500 fill-current" />
                               <span className="ml-1 text-gray-900 font-medium">
-                                {trainer.reviews.reduce((acc: number, review: any) => acc + review.rating, 0) /
+                                {trainer.reviews.reduce((acc: number, review: TrainerReview) => acc + review.rating, 0) /
                                   trainer.reviews.length}
                               </span>
                               <span className="ml-1 text-gray-500">({trainer.reviews.length} reviews)</span>
@@ -586,7 +751,7 @@ export default function TrainerPlanPage() {
                           </div>
 
                           <div className="mt-4">
-                            <p className="text-gray-700">{trainer.plans.length} training plans available</p>
+                            <p className="text-gray-700">{trainer.planCount} workout {trainer.planCount === 1 ? 'plan' : 'plans'} available</p>
                           </div>
 
                           <div className="mt-4 flex justify-end">
@@ -604,7 +769,7 @@ export default function TrainerPlanPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+              <div className="bg-gray-100 rounded-lg shadow-sm p-8 text-center">
                 <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No trainers available</h3>
                 <p className="text-gray-600 mb-6">There are no trainers with training plans available at the moment.</p>

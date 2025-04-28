@@ -1,11 +1,25 @@
 import { Schema, models, model } from "mongoose";
 
+export interface OrderItem {
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  purchaseDate: Date;
+}
+
+export interface OrderHistory {
+  orders: OrderItem[];
+}
+
 export interface MemberProfile {
   weight?: number; // in kg
   height?: number; // in cm
   age?: number;
   gender?: "male" | "female" | "other";
   bmi?: number;
+  orderHistory?: OrderHistory;
   // Add more measurements as needed
 }
 
@@ -41,6 +55,25 @@ export interface IUser {
   trainerProfile?: TrainerProfile;
 }
 
+const orderItemSchema = new Schema<OrderItem>(
+  {
+    productId: { type: Number, required: true },
+    name: { type: String, required: true },
+    price: { type: Number, required: true },
+    quantity: { type: Number, required: true, default: 1 },
+    image: { type: String, required: true },
+    purchaseDate: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const orderHistorySchema = new Schema<OrderHistory>(
+  {
+    orders: { type: [orderItemSchema], default: [] },
+  },
+  { _id: false }
+);
+
 const memberProfileSchema = new Schema<MemberProfile>(
   {
     weight: Number,
@@ -48,6 +81,7 @@ const memberProfileSchema = new Schema<MemberProfile>(
     age: Number,
     gender: { type: String, enum: ["male", "female", "other"] },
     bmi: Number,
+    orderHistory: { type: orderHistorySchema, default: { orders: [] } },
   },
   { _id: false }
 );

@@ -19,6 +19,7 @@ import {
   LogIn,
   UserPlus,
   Settings,
+  ShoppingCart,
 } from "lucide-react"
 
 // This would come from your authentication system
@@ -110,13 +111,6 @@ export default function NavBar() {
               Dashboard
             </Link>
             <Link
-              href="/admin/trainer-assignment"
-              className={`${isActive("/admin/trainer-assignment")} transition-colors duration-200`}
-              onClick={closeMenu}
-            >
-              Trainer Assignment
-            </Link>
-            <Link
               href="/admin/trainer-payment"
               className={`${isActive("/admin/trainer-payment")} transition-colors duration-200`}
               onClick={closeMenu}
@@ -195,6 +189,13 @@ export default function NavBar() {
               onClick={closeMenu}
             >
               Training Plans
+            </Link>
+            <Link
+              href="/user/supplements"
+              className={`${isActive("/user/supplements")} transition-colors duration-200`}
+              onClick={closeMenu}
+            >
+              Supplements
             </Link>
             <Link
               href="/user/invoice"
@@ -464,6 +465,22 @@ export default function NavBar() {
               >
                 <Dumbbell className="mr-4 h-6 w-6 text-gray-500" />
                 Find Trainers
+              </Link>
+              <Link
+                href="/user/trainer-plan"
+                className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary"
+                onClick={closeMenu}
+              >
+                <ClipboardList className="mr-4 h-6 w-6 text-gray-500" />
+                Training Plans
+              </Link>
+              <Link
+                href="/user/supplements"
+                className="flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-900 hover:bg-gray-50 hover:text-primary"
+                onClick={closeMenu}
+              >
+                <ShoppingCart className="mr-4 h-6 w-6 text-gray-500" />
+                Supplements
               </Link>
               <Link
                 href="/user/invoice"
