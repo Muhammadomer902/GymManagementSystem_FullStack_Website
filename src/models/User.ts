@@ -119,7 +119,12 @@ const trainerProfileSchema = new Schema<TrainerProfile>(
 
 const userSchema = new Schema<IUser>(
   {
-    name: { type: String, required: [true, "Name is required"] },
+    name: { 
+      type: String,
+      required: [true, "Name is required"],
+      minlength: [3, "Username must be at least 3 characters"],
+      maxlength: [15, "Username cannot exceed 15 characters"],
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -131,7 +136,8 @@ const userSchema = new Schema<IUser>(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: [6, "Password should be at least 6 characters"],
+      minlength: [8, "Password must be at least 8 characters"],
+      maxlength: [20, "Password cannot exceed 20 characters"],
     },
     role: {
       type: String,
