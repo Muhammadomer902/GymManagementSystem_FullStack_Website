@@ -88,7 +88,12 @@ const memberProfileSchema = new Schema<MemberProfile>(
 
 const trainerPaymentRecordSchema = new Schema<TrainerPaymentRecord>(
   {
-    amount: { type: Number, required: true },
+    amount: {
+      type: Number,
+      required: true,
+      min: [1, "Payment amount must be at least $1"],
+      max: [10000, "Payment amount cannot exceed $10000"],
+    },
     paidAt: { type: Date, required: true },
     period: { type: String, required: true },
     method: { type: String },
